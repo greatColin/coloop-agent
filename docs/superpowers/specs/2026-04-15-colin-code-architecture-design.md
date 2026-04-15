@@ -53,6 +53,7 @@ com.colin.code
 | `AgentLoop` | `while` 循环：调用 LLM → 判断 tool_calls → 执行工具 → 追加结果 |
 | `AgentHook` | 生命周期钩子接口（onLoopStart / beforeLLMCall / afterLLMCall / onToolCall / onLoopEnd） |
 | `MessageBuilder` | 抽象消息构造器：buildInitial / addAssistantMessage / addToolResult |
+| `InputInterceptor` | 输入拦截器：在 LLM 调用前检查用户输入，可直接短路返回 |
 | `LLMProvider` | LLM 调用抽象 |
 | `Tool` / `ToolRegistry` | 工具接口和注册表 |
 
@@ -193,7 +194,59 @@ public class LoggingCapability implements Tool, AgentHook {
 
 ---
 
-## 7. 当前代码迁移路径
+## 7. InputInterceptor 前置拦截器
+
+新增 `core.interceptor.InputInterceptor` 接口，用于在 LLM 调用之前检查用户输入，实现**快捷指令、Skill 系统、手动上下文压缩**等直接返回功能。
+
+### 接口定义
+
+```java
+package com.colin.code.core.interceptor;
+
+import java.util.Optional;
+
+public interface InputInterceptor {
+    Optional<String> intercept(String userMessage);
+}
+```
+
+### AgentLoop 中的接入点
+
+```java
+public String chat(String userMessage) {
+    for (InputInterceptor ic : interceptors) {
+        Optional<String> direct = ic.intercept(userMessage);
+        if (direct.isPresent()) {
+            hooks.forEach(h -> h.onLoopEnd(direct.get()));
+            return direct.get();
+        }
+    }
+    // ... 原有 LLM 循环逻辑
+}
+```
+
+### CapabilityLoader 链式 API
+
+```java
+new CapabilityLoader()
+    .withInterceptor(new CompactInterceptor(history))
+    .withInterceptor(new SkillDispatcher(skills))
+    .build(provider, config);
+```
+
+### 典型应用场景
+
+| 场景 | 实现方式 |
+|------|----------|
+| `/compact` 手动压缩 | `CompactInterceptor` 检测输入，直接调用压缩逻辑并返回 |
+| `/commit` Skill | `SkillDispatcher` 解析 `/xxx`，分发到对应 Skill 执行 |
+| 权限确认拦截 | `PermissionInterceptor` 对敏感命令弹窗确认或直接拒绝 |
+
+> `InputInterceptor` 与 `PromptPlugin`、`Tool`、`AgentHook` 完全正交，各司其职。
+
+---
+
+## 8. 当前代码迁移路径
 
 ### 7.1 文件移动清单
 
@@ -220,6 +273,7 @@ public class LoggingCapability implements Tool, AgentHook {
 |--------|------|
 | `core/message/MessageBuilder.java` | 消息构建抽象 |
 | `core/agent/AgentHook.java` | 生命周期钩子 |
+| `core/interceptor/InputInterceptor.java` | 输入拦截器 |
 | `capability/prompt/BasePromptPlugin.java` | 基础提示词 |
 | `capability/prompt/SkillPromptPlugin.java` | 技能注入 |
 | `capability/prompt/AgentsMdPromptPlugin.java` | AGENTS.md 注入 |
@@ -234,10 +288,10 @@ public class LoggingCapability implements Tool, AgentHook {
 1. 新建目录结构 `core/` / `capability/` / `runtime/` / `entry/`
 2. 移动接口与数据模型到 `core`
 3. 移动具体实现到 `capability` 对应子包
-4. 改造 `ContextBuilder` → `StandardMessageBuilder`，实现 `MessageBuilder` 接口
+4. 改造 `ContextBuilder` → `StandardMessageBuilder`，实现 `MessageBuilder` ****接口****
 5. 拆分 `PromptSegment` 拼接逻辑为多个 `PromptPlugin`
-6. 新增 `CapabilityLoader`、`StandardCapability`、`AgentHook`
-7. 改造 `AgentLoop`，注入 `MessageBuilder` 和 `AgentHook` 列表
+6. 新增 `CapabilityLoader`、`StandardCapability`、`AgentHook`、`InputInterceptor`
+7. 改造 `AgentLoop`，注入 `MessageBuilder`、`AgentHook` 列表和 `InputInterceptor` 列表
 8. 升级 `DemoConfig` → `AppConfig`
 9. 拆分 `Main.java` 为 `MinimalDemo` 和 `CliApp`
 10. 更新 `pom.xml`、编译验证、更新 `CLAUDE.md`
@@ -302,6 +356,7 @@ public interface Planner {
 | 枚举目录 `StandardCapability` | 规范内置能力 ID，简化配置，同时作为能力目录 |
 | Hook 与 Tool 平级 | 统一组装心智模型，支持一个类多重身份 |
 | core 保持无反射 | 唯一反射隔离在 `CapabilityLoader.fromConfig()` 中 |
+| 新增 `InputInterceptor` | 支持 Skill、快捷指令等直接短路返回，与 Tool/PromptPlugin/Hook 正交 |
 
 ---
 

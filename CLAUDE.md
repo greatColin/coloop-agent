@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-`colin-code` 是一个精简版 Java Agent 学习演示项目，展示了最小可用的 agent-loop + exec 工具流程。项目基于 Maven 构建，使用 JDK 21，主要依赖 Jackson 和 OkHttp。
+`colin-code` 是一个**可插拔、模块隔离的轻量级 AGI Agent 底座**，起源于最小可用的 agent-loop + exec 演示，目标演进为类似 Claude Code 的简化克隆版。项目基于 Maven 构建，使用 JDK 21，主要依赖 Jackson 和 OkHttp。
 
 ## 常用命令
 
 - **编译并运行 Demo**：
   ```bash
-  mvn compile exec:java -Dexec.mainClass="com.colin.code.Main"
+  mvn compile exec:java -Dexec.mainClass="com.colin.code.entry.MinimalDemo"
   ```
 - **编译**：`mvn compile`
 - **打包**：`mvn package`
@@ -18,34 +18,68 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 架构设计
 
+项目采用**核心-插件洋葱架构**，分为四层：
+
+```
+core/           ← 教学核心，永远精简：AgentLoop、抽象接口、数据模型
+capability/     ← 可插拔能力模块：Provider、Tool、PromptPlugin、Hook
+runtime/        ← 动态组装中枢：CapabilityLoader、StandardCapability、AgentRuntime
+entry/          ← 多入口：MinimalDemo（教学）、CliApp（完整功能）
+```
+
 ### 核心流程
 
-程序入口为 `com.colin.code.Main`，支持两种运行模式：
-
-1. **Mock 模式（默认）**：不依赖外部 API，使用 `MockProvider` 模拟两轮 LLM 响应，验证 agent-loop 逻辑。
-2. **真实 API 模式**：需设置环境变量 `OPENAI_API_KEY`，使用 `OpenAICompatibleProvider` 调用真实模型。
+1. **教学入口** `entry.MinimalDemo`：只加载最基础的 mock provider + exec tool，代码极简，用于学习核心 loop。
+2. **完整入口** `entry.CliApp`：通过 `runtime.CapabilityLoader` 链式组装所有能力，支持真实 API。
 
 ### 模块职责
 
-- **`agent.AgentLoop`**：Agent 核心循环。负责构造消息列表，在 `while` 循环中调用 LLM，如返回 `tool_calls` 则执行工具并追加结果到上下文，否则返回最终文本回复。
-- **`agent.ContextBuilder`**：上下文构建器。组装 System Prompt 和消息列表。System Prompt 由 `PromptSegment` 枚举拼接而成，并注入当前时间、工作目录、平台等动态信息。
-- **`prompt.PromptSegment`**：系统提示词段落枚举。标记为 `enabled` 的段落会注入到 System Prompt 中；`disabled` 的段落仅作为知识库保留。
-- **`provider.LLMProvider`**：LLM 提供商接口，定义对话补全方法。
-  - `OpenAICompatibleProvider`：调用 OpenAI 兼容 API（Chat Completions）。
-  - `MockProvider`：按预设列表顺序返回模拟响应，用于测试 loop 逻辑。
-- **`tool.ToolRegistry`**：工具注册表。管理所有可用工具，向 LLM 输出 function 定义列表，并调度工具执行。
-- **`tool.ExecTool`**：当前唯一实现的工具，用于执行 shell 命令，支持超时控制（默认 30 秒），自动适配 Windows / Unix 环境。
-- **`config.DemoConfig`**：配置类，包含模型参数、API 连接信息、最大迭代次数、执行超时等默认值。API Key 可通过环境变量 `OPENAI_API_KEY` 注入。
+#### core 层（教学骨架）
+- **`core.agent.AgentLoop`**：Agent 核心循环。`while` 中调用 LLM，处理 `tool_calls`，触发 `AgentHook`。
+- **`core.message.MessageBuilder`**：消息构建抽象接口。
+- **`core.interceptor.InputInterceptor`**：输入拦截器。支持 `/compact`、Skill 等快捷指令直接短路返回。
+- **`core.provider.LLMProvider`**：LLM 提供商接口。
+- **`core.tool.Tool` / `ToolRegistry`**：工具接口和注册表。
 
-### 工具扩展方式
+#### capability 层（可插拔能力）
+- **`capability.provider.openai` / `mock`**：具体 Provider 实现。
+- **`capability.tool.exec`**：`ExecTool`，Shell 执行。
+- **`capability.tool.filesystem`**：文件读写搜索工具。
+- **`capability.prompt`**：`BasePromptPlugin`、`SkillPromptPlugin`、`AgentsMdPromptPlugin`，动态拼接系统提示。
+- **`capability.hook`**：`LoggingHook` 等生命周期实现。
 
-如需添加新工具：
-1. 实现 `tool.Tool` 接口（或继承 `tool.BaseTool`）。
-2. 在 `AgentLoop.registerTools()` 中通过 `toolRegistry.register()` 注册。
+#### runtime 层（组装中枢）
+- **`runtime.CapabilityLoader`**：链式组装 Agent。支持 `withCapability()`、`withTool()`、`withPromptPlugin()`、`withHook()`、`withInterceptor()`。
+- **`runtime.StandardCapability`**：内置能力目录枚举（`exec`、`base_prompt`、`logging` 等），规范所有内置能力的 ID 和说明。
+- **`runtime.AgentRuntime`**：组装完成后的可运行代理。
+- **`runtime.config.AppConfig`**：配置中心（原 `DemoConfig` 升级）。
+
+### 能力扩展方式
+
+新增内置能力：
+1. 在 `capability/` 下新建子包实现具体能力。
+2. 如果是通用内置能力，将其注册到 `StandardCapability` 枚举。
+3. 在 `CapabilityLoader` 链式调用中组装。
+
+新增自定义能力（不改动现有代码）：
+```java
+new CapabilityLoader()
+    .withCapability(StandardCapability.EXEC_TOOL, config)
+    .withTool(new MyCustomTool())
+    .withPromptPlugin(new MyCustomPromptPlugin())
+    .build(provider, config);
+```
+
+配置驱动方式：
+```java
+new CapabilityLoader()
+    .fromConfig("classpath:default-capabilities.json", config)
+    .build(provider, config);
+```
 
 ## 运行真实 API 的注意事项
 
 切换至真实 API 模式时，需确保：
 - 环境变量 `OPENAI_API_KEY` 已设置。
-- `DemoConfig` 中的 `apiBase` 和 `model` 已配置为正确的端点和模型名。
-- 在 `Main.java` 中注释掉 `runWithMock()`，取消注释 `runWithRealAPI()`。
+- `AppConfig` 中的 `apiBase` 和 `model` 已配置为正确的端点和模型名。
+- 在 `entry.CliApp` 中切换为使用 `OpenAICompatibleProvider`。
