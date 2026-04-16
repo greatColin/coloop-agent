@@ -82,7 +82,7 @@ public class CapabilityLoader {
 
         MessageBuilder mb = this.messageBuilder;
         if (mb == null) {
-            mb = new com.coloop.agent.capability.prompt.StandardMessageBuilder(promptPlugins, config);
+            mb = new com.coloop.agent.capability.message.StandardMessageBuilder(promptPlugins, config);
         }
 
         com.coloop.agent.core.agent.AgentLoop loop = new com.coloop.agent.core.agent.AgentLoop(

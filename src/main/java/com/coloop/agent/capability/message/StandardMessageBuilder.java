@@ -1,4 +1,4 @@
-package com.coloop.agent.capability.prompt;
+package com.coloop.agent.capability.message;
 
 import com.coloop.agent.core.message.MessageBuilder;
 import com.coloop.agent.core.prompt.PromptPlugin;
