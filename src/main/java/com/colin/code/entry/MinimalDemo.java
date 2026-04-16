@@ -25,25 +25,25 @@ public class MinimalDemo {
             .withCapability(StandardCapability.BASE_PROMPT, config)
             .build(provider, config);
 
-        String result = runtime.chat("帮我列出当前目录的文件");
+        String result = runtime.chat("帮我查看当前 Java 版本");
         System.out.println("\n[Mock 模式] 最终结果：");
         System.out.println(result);
     }
 
     private static LLMProvider buildMockProvider() {
-        List<LLMResponse> responses = new ArrayList<LLMResponse>();
+        List<LLMResponse> responses = new ArrayList<>();
 
         LLMResponse r1 = new LLMResponse();
-        r1.setContent("我来帮你查看当前目录的文件列表。");
+        r1.setContent("我来帮你查看当前 Java 版本。");
         ToolCallRequest tc = new ToolCallRequest();
         tc.setId("call_1");
         tc.setName("exec");
-        tc.setArguments(Collections.<String, Object>singletonMap("command", "ls -la"));
+        tc.setArguments(Collections.<String, Object>singletonMap("command", "java -version"));
         r1.setToolCalls(Collections.singletonList(tc));
         responses.add(r1);
 
         LLMResponse r2 = new LLMResponse();
-        r2.setContent("当前目录包含 pom.xml、src、target 等文件和文件夹。");
+        r2.setContent("当前 Java 版本信息已显示在命令输出中。");
         responses.add(r2);
 
         return new MockProvider(responses);
