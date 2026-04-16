@@ -33,3 +33,7 @@ target/
 *.swp
 *.swo
 *~
+
+# Claude Code worktrees
+.claude/
+.worktrees/
