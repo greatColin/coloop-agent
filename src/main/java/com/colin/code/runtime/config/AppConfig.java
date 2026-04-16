@@ -72,13 +72,23 @@ public class AppConfig {
 
     /**
      * 从环境变量加载配置，返回一个新的 AppConfig 实例。
-     * 支持的环境变量：OPENAI_MODEL、OPENAI_API_KEY、OPENAI_API_BASE
+     * 优先读取 COLIN_CODE_ 前缀的变量，其次读取 OPENAI_ 前缀的变量。
+     * 支持的环境变量：
+     * - COLIN_CODE_OPENAI_MODEL / OPENAI_MODEL
+     * - COLIN_CODE_OPENAI_API_KEY / OPENAI_API_KEY
+     * - COLIN_CODE_OPENAI_API_BASE / OPENAI_API_BASE
      */
     public static AppConfig fromEnv() {
         AppConfig config = new AppConfig();
-        String model = System.getenv("OPENAI_MODEL");
-        String apiKey = System.getenv("OPENAI_API_KEY");
-        String apiBase = System.getenv("OPENAI_API_BASE");
+        String model = System.getenv("COLIN_CODE_OPENAI_MODEL");
+        if (model == null) model = System.getenv("OPENAI_MODEL");
+
+        String apiKey = System.getenv("COLIN_CODE_OPENAI_API_KEY");
+        if (apiKey == null) apiKey = System.getenv("OPENAI_API_KEY");
+
+        String apiBase = System.getenv("COLIN_CODE_OPENAI_API_BASE");
+        if (apiBase == null) apiBase = System.getenv("OPENAI_API_BASE");
+
         if (model != null) config.setModel(model);
         if (apiKey != null) config.setApiKey(apiKey);
         if (apiBase != null) config.setApiBase(apiBase);

@@ -14,7 +14,7 @@ public class CliApp {
         AppConfig config = AppConfig.fromEnv();
 
         if (config.getApiKey().isEmpty()) {
-            System.out.println("真实 API 模式需要设置环境变量 OPENAI_API_KEY，当前切换到 MinimalDemo 模式。\n");
+            System.out.println("真实 API 模式需要设置环境变量 COLIN_CODE_OPENAI_API_KEY（或 OPENAI_API_KEY），当前切换到 MinimalDemo 模式。\n");
             MinimalDemo.main(args);
             return;
         }
