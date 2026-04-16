@@ -1,4 +1,4 @@
-# colin-code 架构重构实现计划
+# coloop-agent 架构重构实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -59,7 +59,7 @@ mkdir -p src/main/java/com/colin/code/core/provider
 
 复制 `provider/LLMProvider.java` 到 `core/provider/LLMProvider.java`，修改包声明：
 ```java
-package com.colin.code.core.provider;
+package com.coloop.agent.core.provider;
 ```
 
 对 `LLMResponse.java` 和 `ToolCallRequest.java` 执行相同操作。
@@ -89,12 +89,12 @@ mkdir -p src/main/java/com/colin/code/core/tool
 
 复制 `tool/Tool.java`、`tool/BaseTool.java`、`tool/ToolRegistry.java` 到 `core/tool/`，修改包声明为：
 ```java
-package com.colin.code.core.tool;
+package com.coloop.agent.core.tool;
 ```
 
 更新 `ToolRegistry.java` 中的 import：
 ```java
-import com.colin.code.core.provider.ToolCallRequest;
+import com.coloop.agent.core.provider.ToolCallRequest;
 ```
 
 - [ ] **Step 2: 提交**
@@ -117,10 +117,10 @@ git commit -m "refactor: move tool abstractions to core"
 - [ ] **Step 1: 创建 MessageBuilder**
 
 ```java
-package com.colin.code.core.message;
+package com.coloop.agent.core.message;
 
-import com.colin.code.core.provider.LLMResponse;
-import com.colin.code.core.provider.ToolCallRequest;
+import com.coloop.agent.core.provider.LLMResponse;
+import com.coloop.agent.core.provider.ToolCallRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -135,10 +135,10 @@ public interface MessageBuilder {
 - [ ] **Step 2: 创建 AgentHook**
 
 ```java
-package com.colin.code.core.agent;
+package com.coloop.agent.core.agent;
 
-import com.colin.code.core.provider.LLMResponse;
-import com.colin.code.core.provider.ToolCallRequest;
+import com.coloop.agent.core.provider.LLMResponse;
+import com.coloop.agent.core.provider.ToolCallRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -155,7 +155,7 @@ public interface AgentHook {
 - [ ] **Step 3: 创建 InputInterceptor**
 
 ```java
-package com.colin.code.core.interceptor;
+package com.coloop.agent.core.interceptor;
 
 import java.util.Optional;
 
@@ -167,9 +167,9 @@ public interface InputInterceptor {
 - [ ] **Step 4: 创建 PromptPlugin**
 
 ```java
-package com.colin.code.core.prompt;
+package com.coloop.agent.core.prompt;
 
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.util.Map;
 
@@ -206,15 +206,15 @@ mkdir -p src/main/java/com/colin/code/capability/provider/openai
 ```
 
 复制文件，修改包名：
-- `MockProvider.java` -> `package com.colin.code.capability.provider.mock;`
-- `OpenAICompatibleProvider.java` -> `package com.colin.code.capability.provider.openai;`
+- `MockProvider.java` -> `package com.coloop.agent.capability.provider.mock;`
+- `OpenAICompatibleProvider.java` -> `package com.coloop.agent.capability.provider.openai;`
 
 更新 import：
 ```java
-import com.colin.code.core.provider.LLMProvider;
-import com.colin.code.core.provider.LLMResponse;
-import com.colin.code.core.provider.ToolCallRequest;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.core.provider.LLMProvider;
+import com.coloop.agent.core.provider.LLMResponse;
+import com.coloop.agent.core.provider.ToolCallRequest;
+import com.coloop.agent.runtime.config.AppConfig;
 ```
 
 （注意：`OpenAICompatibleProvider` 原来依赖 `DemoConfig`，现在改为 `AppConfig`。如果 `AppConfig` 还没创建，可以先保留 `DemoConfig` 的 import，在 Task 6 中统一修改。）
@@ -242,9 +242,9 @@ mkdir -p src/main/java/com/colin/code/capability/tool/exec
 
 复制 `tool/ExecTool.java`，修改包名：
 ```java
-package com.colin.code.capability.tool.exec;
+package com.coloop.agent.capability.tool.exec;
 
-import com.colin.code.core.tool.BaseTool;
+import com.coloop.agent.core.tool.BaseTool;
 ```
 
 - [ ] **Step 2: 移动 PromptSegment**
@@ -255,7 +255,7 @@ mkdir -p src/main/java/com/colin/code/capability/prompt
 
 复制 `prompt/PromptSegment.java`，修改包名：
 ```java
-package com.colin.code.capability.prompt;
+package com.coloop.agent.capability.prompt;
 ```
 
 - [ ] **Step 3: 提交**
@@ -281,7 +281,7 @@ mkdir -p src/main/java/com/colin/code/runtime/config
 ```
 
 ```java
-package com.colin.code.runtime.config;
+package com.coloop.agent.runtime.config;
 
 public class AppConfig {
     private String model = "";
@@ -308,11 +308,11 @@ public class AppConfig {
 
 将 `OpenAICompatibleProvider.java` 中的：
 ```java
-import com.colin.code.config.DemoConfig;
+import com.coloop.agent.config.DemoConfig;
 ```
 改为：
 ```java
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.runtime.config.AppConfig;
 ```
 
 并将构造函数参数类型从 `DemoConfig` 改为 `AppConfig`。
@@ -345,10 +345,10 @@ git commit -m "refactor: introduce AppConfig in runtime and update OpenAICompati
 - [ ] **Step 1: 创建 BasePromptPlugin**
 
 ```java
-package com.colin.code.capability.prompt;
+package com.coloop.agent.capability.prompt;
 
-import com.colin.code.core.prompt.PromptPlugin;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.core.prompt.PromptPlugin;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.util.Map;
 
@@ -374,10 +374,10 @@ public class BasePromptPlugin implements PromptPlugin {
 - [ ] **Step 2: 创建 SkillPromptPlugin（预留）**
 
 ```java
-package com.colin.code.capability.prompt;
+package com.coloop.agent.capability.prompt;
 
-import com.colin.code.core.prompt.PromptPlugin;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.core.prompt.PromptPlugin;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.util.Map;
 
@@ -398,10 +398,10 @@ public class SkillPromptPlugin implements PromptPlugin {
 - [ ] **Step 3: 创建 AgentsMdPromptPlugin（预留）**
 
 ```java
-package com.colin.code.capability.prompt;
+package com.coloop.agent.capability.prompt;
 
-import com.colin.code.core.prompt.PromptPlugin;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.core.prompt.PromptPlugin;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -431,13 +431,13 @@ public class AgentsMdPromptPlugin implements PromptPlugin {
 - [ ] **Step 4: 创建 StandardMessageBuilder（原 ContextBuilder 改造）**
 
 ```java
-package com.colin.code.capability.prompt;
+package com.coloop.agent.capability.prompt;
 
-import com.colin.code.core.message.MessageBuilder;
-import com.colin.code.core.provider.LLMResponse;
-import com.colin.code.core.provider.ToolCallRequest;
-import com.colin.code.core.prompt.PromptPlugin;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.core.message.MessageBuilder;
+import com.coloop.agent.core.provider.LLMResponse;
+import com.coloop.agent.core.provider.ToolCallRequest;
+import com.coloop.agent.core.prompt.PromptPlugin;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.util.*;
 
@@ -554,11 +554,11 @@ git commit -m "feat(capability): add PromptPlugin implementations and StandardMe
 - [ ] **Step 1: 创建 LoggingHook**
 
 ```java
-package com.colin.code.capability.hook;
+package com.coloop.agent.capability.hook;
 
-import com.colin.code.core.agent.AgentHook;
-import com.colin.code.core.provider.LLMResponse;
-import com.colin.code.core.provider.ToolCallRequest;
+import com.coloop.agent.core.agent.AgentHook;
+import com.coloop.agent.core.provider.LLMResponse;
+import com.coloop.agent.core.provider.ToolCallRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -611,7 +611,7 @@ git commit -m "feat(capability): add LoggingHook"
 - [ ] **Step 1: 创建 CapabilityType**
 
 ```java
-package com.colin.code.runtime;
+package com.coloop.agent.runtime;
 
 public enum CapabilityType {
     TOOL, PROMPT_PLUGIN, HOOK, INTERCEPTOR
@@ -621,18 +621,18 @@ public enum CapabilityType {
 - [ ] **Step 2: 创建 StandardCapability**
 
 ```java
-package com.colin.code.runtime;
+package com.coloop.agent.runtime;
 
-import com.colin.code.capability.hook.LoggingHook;
-import com.colin.code.capability.prompt.AgentsMdPromptPlugin;
-import com.colin.code.capability.prompt.BasePromptPlugin;
-import com.colin.code.capability.prompt.SkillPromptPlugin;
-import com.colin.code.capability.tool.exec.ExecTool;
-import com.colin.code.core.agent.AgentHook;
-import com.colin.code.core.interceptor.InputInterceptor;
-import com.colin.code.core.prompt.PromptPlugin;
-import com.colin.code.core.tool.Tool;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.capability.hook.LoggingHook;
+import com.coloop.agent.capability.prompt.AgentsMdPromptPlugin;
+import com.coloop.agent.capability.prompt.BasePromptPlugin;
+import com.coloop.agent.capability.prompt.SkillPromptPlugin;
+import com.coloop.agent.capability.tool.exec.ExecTool;
+import com.coloop.agent.core.agent.AgentHook;
+import com.coloop.agent.core.interceptor.InputInterceptor;
+import com.coloop.agent.core.prompt.PromptPlugin;
+import com.coloop.agent.core.tool.Tool;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.util.function.Function;
 
@@ -698,16 +698,16 @@ public enum StandardCapability {
 - [ ] **Step 3: 创建 CapabilityLoader**
 
 ```java
-package com.colin.code.runtime;
+package com.coloop.agent.runtime;
 
-import com.colin.code.core.agent.AgentHook;
-import com.colin.code.core.interceptor.InputInterceptor;
-import com.colin.code.core.message.MessageBuilder;
-import com.colin.code.core.prompt.PromptPlugin;
-import com.colin.code.core.provider.LLMProvider;
-import com.colin.code.core.tool.Tool;
-import com.colin.code.core.tool.ToolRegistry;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.core.agent.AgentHook;
+import com.coloop.agent.core.interceptor.InputInterceptor;
+import com.coloop.agent.core.message.MessageBuilder;
+import com.coloop.agent.core.prompt.PromptPlugin;
+import com.coloop.agent.core.provider.LLMProvider;
+import com.coloop.agent.core.tool.Tool;
+import com.coloop.agent.core.tool.ToolRegistry;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -764,10 +764,10 @@ public class CapabilityLoader {
 
         MessageBuilder mb = this.messageBuilder;
         if (mb == null) {
-            mb = new com.colin.code.capability.prompt.StandardMessageBuilder(promptPlugins, config);
+            mb = new com.coloop.agent.capability.prompt.StandardMessageBuilder(promptPlugins, config);
         }
 
-        com.colin.code.core.agent.AgentLoop loop = new com.colin.code.core.agent.AgentLoop(
+        com.coloop.agent.core.agent.AgentLoop loop = new com.coloop.agent.core.agent.AgentLoop(
             provider, registry, mb, hooks, interceptors, config
         );
 
@@ -779,9 +779,9 @@ public class CapabilityLoader {
 - [ ] **Step 4: 创建 AgentRuntime**
 
 ```java
-package com.colin.code.runtime;
+package com.coloop.agent.runtime;
 
-import com.colin.code.core.agent.AgentLoop;
+import com.coloop.agent.core.agent.AgentLoop;
 
 public class AgentRuntime {
     private final AgentLoop agentLoop;
@@ -821,15 +821,15 @@ git commit -m "feat(runtime): add CapabilityLoader, StandardCapability, AgentRun
 - [ ] **Step 1: 重写 AgentLoop**
 
 ```java
-package com.colin.code.core.agent;
+package com.coloop.agent.core.agent;
 
-import com.colin.code.core.interceptor.InputInterceptor;
-import com.colin.code.core.message.MessageBuilder;
-import com.colin.code.core.provider.LLMProvider;
-import com.colin.code.core.provider.LLMResponse;
-import com.colin.code.core.provider.ToolCallRequest;
-import com.colin.code.core.tool.ToolRegistry;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.core.interceptor.InputInterceptor;
+import com.coloop.agent.core.message.MessageBuilder;
+import com.coloop.agent.core.provider.LLMProvider;
+import com.coloop.agent.core.provider.LLMResponse;
+import com.coloop.agent.core.provider.ToolCallRequest;
+import com.coloop.agent.core.tool.ToolRegistry;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.util.List;
 import java.util.Map;
@@ -943,17 +943,17 @@ git commit -m "refactor(core): rewrite AgentLoop with injected MessageBuilder, H
 - [ ] **Step 1: 创建 MinimalDemo**
 
 ```java
-package com.colin.code.entry;
+package com.coloop.agent.entry;
 
-import com.colin.code.capability.provider.mock.MockProvider;
-import com.colin.code.capability.tool.exec.ExecTool;
-import com.colin.code.core.provider.LLMProvider;
-import com.colin.code.core.provider.LLMResponse;
-import com.colin.code.core.provider.ToolCallRequest;
-import com.colin.code.runtime.AgentRuntime;
-import com.colin.code.runtime.CapabilityLoader;
-import com.colin.code.runtime.StandardCapability;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.capability.provider.mock.MockProvider;
+import com.coloop.agent.capability.tool.exec.ExecTool;
+import com.coloop.agent.core.provider.LLMProvider;
+import com.coloop.agent.core.provider.LLMResponse;
+import com.coloop.agent.core.provider.ToolCallRequest;
+import com.coloop.agent.runtime.AgentRuntime;
+import com.coloop.agent.runtime.CapabilityLoader;
+import com.coloop.agent.runtime.StandardCapability;
+import com.coloop.agent.runtime.config.AppConfig;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -961,7 +961,7 @@ import java.util.List;
 
 public class MinimalDemo {
     public static void main(String[] args) {
-        System.out.println("=== colin-code Minimal Demo ===\n");
+        System.out.println("=== coloop-agent Minimal Demo ===\n");
 
         AppConfig config = new AppConfig();
         LLMProvider provider = buildMockProvider();
@@ -1000,18 +1000,18 @@ public class MinimalDemo {
 - [ ] **Step 2: 创建 CliApp**
 
 ```java
-package com.colin.code.entry;
+package com.coloop.agent.entry;
 
-import com.colin.code.capability.provider.openai.OpenAICompatibleProvider;
-import com.colin.code.core.provider.LLMProvider;
-import com.colin.code.runtime.AgentRuntime;
-import com.colin.code.runtime.CapabilityLoader;
-import com.colin.code.runtime.StandardCapability;
-import com.colin.code.runtime.config.AppConfig;
+import com.coloop.agent.capability.provider.openai.OpenAICompatibleProvider;
+import com.coloop.agent.core.provider.LLMProvider;
+import com.coloop.agent.runtime.AgentRuntime;
+import com.coloop.agent.runtime.CapabilityLoader;
+import com.coloop.agent.runtime.StandardCapability;
+import com.coloop.agent.runtime.config.AppConfig;
 
 public class CliApp {
     public static void main(String[] args) {
-        System.out.println("=== colin-code CLI ===\n");
+        System.out.println("=== coloop-agent CLI ===\n");
 
         AppConfig config = new AppConfig();
 
@@ -1093,7 +1093,7 @@ git commit -m "refactor: remove legacy files after migration to core-capability-
 - [ ] **Step 1: 运行 MinimalDemo**
 
 ```bash
-mvn compile exec:java -Dexec.mainClass="com.colin.code.entry.MinimalDemo"
+mvn compile exec:java -Dexec.mainClass="com.coloop.agent.entry.MinimalDemo"
 ```
 Expected: 输出包含 "当前目录包含 pom.xml、src、target 等文件和文件夹。"
 

@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-`colin-code` 是一个**可插拔、模块隔离的轻量级 AGI Agent 底座**，起源于最小可用的 agent-loop + exec 演示，目标演进为类似 Claude Code 的简化克隆版。项目基于 Maven 构建，使用 JDK 21，主要依赖 Jackson 和 OkHttp。
+`coloop-agent` 是一个**可插拔、模块隔离的轻量级 AGI Agent 底座**，起源于最小可用的 agent-loop + exec 演示，目标演进为类似 Claude Code 的简化克隆版。项目基于 Maven 构建，使用 JDK 21，主要依赖 Jackson 和 OkHttp。
 
 ## 常用命令
 
 - **编译并运行 Demo**：
   ```bash
-  mvn compile exec:java -Dexec.mainClass="com.colin.code.entry.MinimalDemo"
+  mvn compile exec:java -Dexec.mainClass="com.coloop.agent.entry.MinimalDemo"
   ```
 - **编译**：`mvn compile`
 - **打包**：`mvn package`

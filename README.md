@@ -1,4 +1,4 @@
-# colin-code
+# coloop-agent
 
 一个**可插拔、模块隔离的轻量级 AGI Agent 底座**，基于 Java 21 + Maven 构建，目标是打磨出一个极简但强大的核心 Agent Loop 内核，服务于 **Vibe Coding** 与 **Spec Coding** 场景。
 
@@ -59,20 +59,20 @@ new CapabilityLoader()
 mvn compile
 
 # 运行教学 Demo（Mock 模式，无需 API Key）
-mvn compile exec:java -Dexec.mainClass="com.colin.code.entry.MinimalDemo"
+mvn compile exec:java -Dexec.mainClass="com.coloop.agent.entry.MinimalDemo"
 
 # 运行真实 API 模式（需先设置环境变量）
 export COLIN_CODE_OPENAI_API_KEY="sk-..."
 export COLIN_CODE_OPENAI_API_BASE="https://api.openai.com/v1"
 export COLIN_CODE_OPENAI_MODEL="gpt-4o"
-mvn compile exec:java -Dexec.mainClass="com.colin.code.entry.CliApp"
+mvn compile exec:java -Dexec.mainClass="com.coloop.agent.entry.CliApp"
 ```
 
 ---
 
 ## 核心差异分析（聚焦 Agent Loop 内核）
 
-与 Claude Code、Aider、Cline、Codex CLI 等成熟工具相比，`colin-code` 目前**只聚焦核心 Loop**，以下是差异盘点（侧重 Vibe Coding / Spec Coding 体验）：
+与 Claude Code、Aider、Cline、Codex CLI 等成熟工具相比，`coloop-agent` 目前**只聚焦核心 Loop**，以下是差异盘点（侧重 Vibe Coding / Spec Coding 体验）：
 
 ### 我们已具备的（优势）
 | 特性 | 说明 |
@@ -159,7 +159,7 @@ mvn compile exec:java -Dexec.mainClass="com.colin.code.entry.CliApp"
 
 > **核心层永远精简，能力层无限扩展。**
 
-`colin-code` 不是要成为第二个 Claude Code，而是要成为一个**透明、可理解、可魔改**的 Agent Loop 内核。当你想搞懂“一个 Coding Agent 到底是怎么工作的”，或者想“从零开始为自己的团队定制一个 Agent”，这里就是最好的起点。
+`coloop-agent` 不是要成为第二个 Claude Code，而是要成为一个**透明、可理解、可魔改**的 Agent Loop 内核。当你想搞懂“一个 Coding Agent 到底是怎么工作的”，或者想“从零开始为自己的团队定制一个 Agent”，这里就是最好的起点。
 
 ---
 

@@ -4,12 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.colin</groupId>
-    <artifactId>colin-code</artifactId>
+    <groupId>com.coloop</groupId>
+    <artifactId>coloop-agent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>colin-code</name>
-    <description>精简版 agent-loop + exec 工具学习演示（基于 colin-code）</description>
+    <name>coloop-agent</name>
+    <description>精简版 agent-loop + exec 工具学习演示（基于 coloop-agent）</description>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>

@@ -1,8 +1,8 @@
-# colin-code 架构重构设计文档
+# coloop-agent 架构重构设计文档
 
 ## 1. 设计目标
 
-将 `colin-code` 从一个最小可用的 Agent-loop 演示项目，演进为一个**可插拔、模块隔离、教学友好的轻量级 AGI Agent 底座**。
+将 `coloop-agent` 从一个最小可用的 Agent-loop 演示项目，演进为一个**可插拔、模块隔离、教学友好的轻量级 AGI Agent 底座**。
 
 核心约束：
 - `core` 始终精简，教学时能一眼看到最基础循环
@@ -15,7 +15,7 @@
 ## 2. 整体架构：核心-插件洋葱模型
 
 ```
-com.colin.code
+com.coloop.agent
 ├── core/                 ← 教学核心，永远最小化
 │   ├── agent/            ← AgentLoop + AgentHook
 │   ├── message/          ← MessageBuilder 接口
@@ -201,7 +201,7 @@ public class LoggingCapability implements Tool, AgentHook {
 ### 接口定义
 
 ```java
-package com.colin.code.core.interceptor;
+package com.coloop.agent.core.interceptor;
 
 import java.util.Optional;
 
