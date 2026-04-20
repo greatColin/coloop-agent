@@ -39,29 +39,12 @@ public class OpenAICompatibleProvider implements LLMProvider {
     private final OkHttpClient client;
 
     /**
-     * 从 AppConfig 创建 Provider（使用已设置的当前模型配置）。
+     * 从 ModelConfig 创建 Provider。
      */
-    public OpenAICompatibleProvider(AppConfig config) {
-        this.apiKey = config.getApiKey();
-        this.apiBase = config.getApiBase();
-        this.defaultModel = config.getModel();
-        this.client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
-                .build();
-    }
-
-    /**
-     * 从配置加载指定模型的配置创建 Provider。
-     * @param config 配置对象，已加载所有模型和MCP配置
-     * @param modelName 模型名称，如 "openai"、"minimax"
-     */
-    public OpenAICompatibleProvider(AppConfig config, String modelName) {
-        config.applyModelConfig(modelName);
-        this.apiKey = config.getApiKey();
-        this.apiBase = config.getApiBase();
-        this.defaultModel = config.getModel();
+    public OpenAICompatibleProvider(AppConfig.ModelConfig modelConfig) {
+        this.apiKey = modelConfig.getApiKey();
+        this.apiBase = modelConfig.getApiBase();
+        this.defaultModel = modelConfig.getModel();
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(120, TimeUnit.SECONDS)
