@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "example": {
+      "command": "echo",
+      "args": ["hello"],
+      "env": {}
+    }
+  }
+}

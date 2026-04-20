@@ -1,6 +1,7 @@
 package com.coloop.agent.runtime;
 
 import com.coloop.agent.capability.hook.LoggingHook;
+import com.coloop.agent.capability.mcp.McpCapability;
 import com.coloop.agent.capability.prompt.AgentsMdPromptPlugin;
 import com.coloop.agent.capability.prompt.BasePromptPlugin;
 import com.coloop.agent.capability.prompt.SkillPromptPlugin;
@@ -116,6 +117,16 @@ public enum StandardCapability {
             @Override
             public Object apply(AppConfig config) {
                 return new ListDirectoryTool();
+            }
+        }
+    ),
+    MCP_CLIENT(
+        "mcp_client", "MCP 客户端", "通过 STDIO 连接 MCP Server 并暴露其工具",
+        CapabilityType.TOOL,
+        new Function<AppConfig, Object>() {
+            @Override
+            public Object apply(AppConfig config) {
+                return new McpCapability(config);
             }
         }
     );

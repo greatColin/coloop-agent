@@ -13,6 +13,7 @@ public class AppConfig {
     private double temperature = 0.7;
     private int maxIterations = 10;
     private int execTimeoutSeconds = 30;
+    private String mcpConfigPath;
 
     public String getModel() {
         return model;
@@ -69,6 +70,9 @@ public class AppConfig {
     public void setExecTimeoutSeconds(int execTimeoutSeconds) {
         this.execTimeoutSeconds = execTimeoutSeconds;
     }
+
+    public String getMcpConfigPath() { return mcpConfigPath; }
+    public void setMcpConfigPath(String mcpConfigPath) { this.mcpConfigPath = mcpConfigPath; }
 
     /**
      * 从环境变量加载配置，返回一个新的 AppConfig 实例。
