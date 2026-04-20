@@ -21,6 +21,39 @@ public class WriteFileTool extends BaseTool {
     }
 
     @Override
+    public String formatArgsPreview(Map<String, Object> args) {
+        if (args == null) return "";
+        String filePath = (String) args.get("file_path");
+        Object contentObj = args.get("content");
+        String content = contentObj != null ? contentObj.toString() : "";
+
+        StringBuilder sb = new StringBuilder();
+        if (filePath != null) {
+            sb.append(filePath).append(" (new file)\n");
+        }
+
+        if (!content.isEmpty()) {
+            String[] lines = content.split("\n", -1);
+            int maxLines = Math.min(lines.length, 10);
+            for (int i = 0; i < maxLines; i++) {
+                sb.append(String.format("%6d  + %s\n", i + 1, truncateLine(lines[i])));
+            }
+            if (lines.length > 10) {
+                sb.append(String.format("  ... (%d more lines)\n", lines.length - 10));
+            }
+        }
+
+        return sb.toString().trim();
+    }
+
+    private String truncateLine(String line) {
+        if (line.length() > 80) {
+            return line.substring(0, 77) + "...";
+        }
+        return line;
+    }
+
+    @Override
     public String getDescription() {
         return "Write content to a new file. Fails if the file already exists to prevent accidental overwrites.";
     }

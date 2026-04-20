@@ -22,6 +22,10 @@ public class ToolRegistry {
         }
     }
 
+    public Tool getTool(String name) {
+        return tools.get(name);
+    }
+
     /** 返回所有工具的 OpenAI function 定义 */
     public List<Map<String, Object>> getDefinitions() {
         List<Map<String, Object>> out = new ArrayList<>();

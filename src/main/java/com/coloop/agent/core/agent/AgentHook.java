@@ -36,6 +36,14 @@ public interface AgentHook {
     /** 在每次工具执行完成后调用。 */
     default void onToolCall(ToolCallRequest toolCall, String result) {}
 
+    /** 在每次工具执行完成后调用（带格式化参数）。 */
+    default void onToolCall(ToolCallRequest toolCall, String result, String formattedArgs) {
+        onToolCall(toolCall, result);
+    }
+
+    /** 在工具调用前，输出 LLM 的思考内容（content 或 reasoningContent）。 */
+    default void onThinking(String content, String reasoningContent) {}
+
     /** 在 AgentLoop 即将返回最终结果时调用。 */
     default void onLoopEnd(String finalResponse) {}
 }

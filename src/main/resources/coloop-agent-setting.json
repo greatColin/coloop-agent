@@ -1,4 +1,6 @@
 {
+  "maxIterations": 50,
+  "execTimeoutSeconds": 30,
   "models": {
     "openai": {
       "apiKey": "填写apiKey",

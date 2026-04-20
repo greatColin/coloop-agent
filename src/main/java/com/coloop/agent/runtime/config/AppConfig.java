@@ -30,7 +30,7 @@ public class AppConfig {
 
     private int maxTokens = 2048;
     private double temperature = 0.7;
-    private int maxIterations = 10;
+    private int maxIterations = 50;
     private int execTimeoutSeconds = 30;
 
     // MCP 服务器配置
@@ -193,6 +193,10 @@ public class AppConfig {
                 config.mcpServers.put(entry.getKey(), serverConfig);
             }
         }
+
+        // 加载全局配置项
+        config.maxIterations = getInt(root, "maxIterations", 50);
+        config.execTimeoutSeconds = getInt(root, "execTimeoutSeconds", 30);
 
         return config;
     }

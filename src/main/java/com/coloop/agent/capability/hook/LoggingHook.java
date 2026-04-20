@@ -15,35 +15,31 @@ public class LoggingHook implements AgentHook {
 
     @Override
     public void beforeLLMCall(List<Map<String, Object>> messages) {
-        System.out.println("[LOG] Before LLM call, messages: " + messages.size());
+//        System.out.println("[LOG] Before LLM call, messages: " + messages.size());
     }
 
     @Override
     public void afterLLMCall(LLMResponse response) {
-        System.out.println("[LOG] After LLM call, hasToolCalls: " + response.hasToolCalls());
+//        System.out.println("[LOG] After LLM call, hasToolCalls: " + response.hasToolCalls());
     }
 
     @Override
-    public void onToolCall(ToolCallRequest toolCall, String result) {
-        String argsPreview = formatArgsPreview(toolCall.getArguments());
-        System.out.println("[LOG] Tool executed: " + toolCall.getName() + "(" + argsPreview + ")");
+    public void onToolCall(ToolCallRequest toolCall, String result, String formattedArgs) {
+        if (formattedArgs != null && !formattedArgs.isEmpty()) {
+            System.out.println("[LOG] Tool executed: " + toolCall.getName() + "(" + formattedArgs + ")");
+        } else {
+            System.out.println("[LOG] Tool executed: " + toolCall.getName());
+        }
     }
 
-    private String formatArgsPreview(Map<String, Object> args) {
-        if (args == null || args.isEmpty()) {
-            return "";
+    @Override
+    public void onThinking(String content, String reasoningContent) {
+        if (reasoningContent != null && !reasoningContent.isEmpty()) {
+            System.out.println("[THINKING] " + reasoningContent);
         }
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, Object> entry : args.entrySet()) {
-            if (sb.length() > 0) sb.append(", ");
-            String value = String.valueOf(entry.getValue());
-            if (value.length() > 15) {
-                value = value.substring(0, 12) + "...";
-            }
-            sb.append(entry.getKey()).append("=").append(value);
+        if (content != null && !content.isEmpty()) {
+            System.out.println("[THINKING] " + content);
         }
-        String result = sb.toString();
-        return result.length() > 30 ? result.substring(0, 27) + "..." : result;
     }
 
     @Override

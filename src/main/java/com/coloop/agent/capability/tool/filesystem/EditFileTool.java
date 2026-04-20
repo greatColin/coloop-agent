@@ -21,6 +21,93 @@ public class EditFileTool extends BaseTool {
     }
 
     @Override
+    public String formatArgsPreview(Map<String, Object> args) {
+        if (args == null) return "";
+        String filePath = (String) args.get("file_path");
+        Object oldObj = args.get("old_string");
+        Object newObj = args.get("new_string");
+        String oldStr = oldObj != null ? oldObj.toString() : "";
+        String newStr = newObj != null ? newObj.toString() : "";
+
+        StringBuilder sb = new StringBuilder();
+        if (filePath != null) {
+            sb.append(filePath).append("\n");
+        }
+
+        // 尝试读取文件并显示带行号的 diff
+        if (filePath != null && !oldStr.isEmpty()) {
+            try {
+                Path path = Paths.get(filePath).toAbsolutePath().normalize();
+                if (Files.exists(path) && Files.isRegularFile(path)) {
+                    String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+                    int idx = content.indexOf(oldStr);
+                    if (idx >= 0) {
+                        String before = content.substring(0, idx);
+                        int startLine = countLines(before) + 1;
+                        String[] lines = content.split("\n", -1);
+                        String[] oldLines = oldStr.split("\n", -1);
+                        String[] newLines = newStr.split("\n", -1);
+
+                        // 上下文行（变更前2行）
+                        int contextStart = Math.max(1, startLine - 2);
+                        for (int i = contextStart; i < startLine; i++) {
+                            sb.append(String.format("%6d    %s\n", i, truncateLine(lines[i - 1])));
+                        }
+
+                        // 删除的行
+                        for (int i = 0; i < oldLines.length; i++) {
+                            sb.append(String.format("%6d  - %s\n", startLine + i, truncateLine(oldLines[i])));
+                        }
+
+                        // 添加的行
+                        for (int i = 0; i < newLines.length; i++) {
+                            sb.append(String.format("%6d  + %s\n", startLine + i, truncateLine(newLines[i])));
+                        }
+
+                        // 上下文行（变更后2行）
+                        int afterStart = startLine + oldLines.length;
+                        for (int i = 0; i < 2 && afterStart + i <= lines.length; i++) {
+                            sb.append(String.format("%6d    %s\n", afterStart + i, truncateLine(lines[afterStart + i - 1])));
+                        }
+
+                        return sb.toString().trim();
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // 回退：简单格式
+        if (!oldStr.isEmpty()) {
+            for (String line : oldStr.split("\n", 4)) {
+                sb.append("- ").append(truncateLine(line)).append("\n");
+            }
+        }
+        if (!newStr.isEmpty()) {
+            for (String line : newStr.split("\n", 4)) {
+                sb.append("+ ").append(truncateLine(line)).append("\n");
+            }
+        }
+
+        return sb.toString().trim();
+    }
+
+    private int countLines(String s) {
+        if (s == null || s.isEmpty()) return 0;
+        int count = 1;
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == '\n') count++;
+        }
+        return count;
+    }
+
+    private String truncateLine(String line) {
+        if (line.length() > 80) {
+            return line.substring(0, 77) + "...";
+        }
+        return line;
+    }
+
+    @Override
     public String getDescription() {
         return "Edit a file by replacing an exact string with a new string. The old_string must match exactly once.";
     }

@@ -5,6 +5,7 @@ import com.coloop.agent.core.message.MessageBuilder;
 import com.coloop.agent.core.provider.LLMProvider;
 import com.coloop.agent.core.provider.LLMResponse;
 import com.coloop.agent.core.provider.ToolCallRequest;
+import com.coloop.agent.core.tool.Tool;
 import com.coloop.agent.core.tool.ToolRegistry;
 import com.coloop.agent.runtime.config.AppConfig;
 
@@ -73,11 +74,16 @@ public class AgentLoop {
             }
 
             if (response.hasToolCalls()) {
+                for (AgentHook h : hooks) {
+                    h.onThinking(response.getContent(), response.getReasoningContent());
+                }
                 messageBuilder.addAssistantMessage(messages, response);
                 for (ToolCallRequest tc : response.getToolCalls()) {
+                    Tool tool = toolRegistry.getTool(tc.getName());
+                    String formattedArgs = tool != null ? tool.formatArgsPreview(tc.getArguments()) : "";
                     String result = toolRegistry.execute(tc);
                     for (AgentHook h : hooks) {
-                        h.onToolCall(tc, result);
+                        h.onToolCall(tc, result, formattedArgs);
                     }
                     messageBuilder.addToolResult(messages, tc, result);
                 }
@@ -174,11 +180,16 @@ public class AgentLoop {
             }
 
             if (response.hasToolCalls()) {
+                for (AgentHook h : hooks) {
+                    h.onThinking(response.getContent(), response.getReasoningContent());
+                }
                 messageBuilder.addAssistantMessage(messages, response);
                 for (ToolCallRequest tc : response.getToolCalls()) {
+                    Tool tool = toolRegistry.getTool(tc.getName());
+                    String formattedArgs = tool != null ? tool.formatArgsPreview(tc.getArguments()) : "";
                     String result = toolRegistry.execute(tc);
                     for (AgentHook h : hooks) {
-                        h.onToolCall(tc, result);
+                        h.onToolCall(tc, result, formattedArgs);
                     }
                     messageBuilder.addToolResult(messages, tc, result);
                 }
