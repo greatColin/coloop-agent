@@ -15,6 +15,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Agent 核心循环。
+ * <p>
+ * 负责 LLM 调用的 while 循环：发送消息 → 接收响应 → 处理 tool_calls → 追加结果 → 继续循环。
+ * 支持同步 {@link #chat} 与流式 {@link #chatStream} 两种模式，以及跨轮次消息持久化。
+ *
+ * @see AgentHook 生命周期钩子
+ * @see InputInterceptor 输入拦截器
+ */
 public class AgentLoop {
 
     private final LLMProvider provider;
@@ -24,8 +33,17 @@ public class AgentLoop {
     private final List<InputInterceptor> interceptors;
     private final AppConfig config;
 
+    /** 跨轮次持久化的消息历史 */
     private List<Map<String, Object>> messages;
 
+    /**
+     * @param provider        LLM 提供商
+     * @param toolRegistry    工具注册表
+     * @param messageBuilder  消息构建器
+     * @param hooks           生命周期钩子列表（可为 null）
+     * @param interceptors    输入拦截器列表（可为 null）
+     * @param config          运行配置
+     */
     public AgentLoop(
             LLMProvider provider,
             ToolRegistry toolRegistry,
@@ -41,11 +59,14 @@ public class AgentLoop {
         this.config = config;
     }
 
+    /** 同步模式：发送用户消息并阻塞等待最终响应 */
     public String chat(String userMessage) {
+        // 1. 通知循环开始
         for (AgentHook h : hooks) {
             h.onLoopStart(userMessage);
         }
 
+        // 2. 拦截器检查，短路返回
         for (InputInterceptor ic : interceptors) {
             Optional<String> direct = ic.intercept(userMessage);
             if (direct.isPresent()) {
@@ -56,8 +77,10 @@ public class AgentLoop {
             }
         }
 
+        // 3. 准备消息
         prepareMessages(userMessage);
 
+        // 4. 迭代循环
         for (int iter = 0; iter < config.getMaxIterations(); iter++) {
             for (AgentHook h : hooks) {
                 h.beforeLLMCall(messages);
@@ -65,14 +88,13 @@ public class AgentLoop {
             LLMResponse response = provider.chat(
                     messages,
                     toolRegistry.getDefinitions(),
-                    config.getModel(),
-                    config.getMaxTokens(),
-                    config.getTemperature()
+                    null, null, null
             );
             for (AgentHook h : hooks) {
                 h.afterLLMCall(response);
             }
 
+            // 4.1 有 tool_calls 则执行工具并继续循环
             if (response.hasToolCalls()) {
                 for (AgentHook h : hooks) {
                     h.onThinking(response.getContent(), response.getReasoningContent());
@@ -88,6 +110,7 @@ public class AgentLoop {
                     messageBuilder.addToolResult(messages, tc, result);
                 }
             } else {
+                // 4.2 无 tool_calls 则返回最终响应
                 String finalResponse = response.getContent() != null ? response.getContent() : "";
                 for (AgentHook h : hooks) {
                     h.onLoopEnd(finalResponse);
@@ -96,13 +119,19 @@ public class AgentLoop {
             }
         }
 
+        // 5. 达到最大迭代次数
         String maxIterMsg = "[Reached max iterations: " + config.getMaxIterations() + "]";
         for (AgentHook h : hooks) {
-            h.onLoopEnd(maxIterMsg);
+            h.onLoopEnd(true, maxIterMsg);
         }
         return maxIterMsg;
     }
 
+    /**
+     * 流式模式：发送用户消息并通过回调逐块返回内容。
+     * <p>
+     * 与 {@link #chat} 流程相同，但 LLM 响应通过 StreamConsumer 异步回调。
+     */
     public String chatStream(String userMessage, final LLMProvider.StreamConsumer consumer) {
         for (AgentHook h : hooks) {
             h.onLoopStart(userMessage);
@@ -160,9 +189,7 @@ public class AgentLoop {
             provider.chatStream(
                     messages,
                     toolRegistry.getDefinitions(),
-                    config.getModel(),
-                    config.getMaxTokens(),
-                    config.getTemperature(),
+                    null, null, null,
                     accumulatingConsumer
             );
 
@@ -209,6 +236,7 @@ public class AgentLoop {
         return maxIterMsg;
     }
 
+    /** 首次调用初始化消息列表，后续调用追加用户消息（支持多轮对话持久化） */
     private void prepareMessages(String userMessage) {
         if (messages == null) {
             messages = messageBuilder.buildInitial(userMessage);

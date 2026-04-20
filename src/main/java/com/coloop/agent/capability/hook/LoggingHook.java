@@ -43,7 +43,11 @@ public class LoggingHook implements AgentHook {
     }
 
     @Override
-    public void onLoopEnd(String finalResponse) {
-        System.out.println("[LOG] Loop end.");
+    public void onLoopEnd(boolean maxIte, String finalResponse) {
+        if(maxIte) {
+            System.out.println(finalResponse);
+        } else {
+            System.out.println("[LOG] Loop end.");
+        }
     }
 }

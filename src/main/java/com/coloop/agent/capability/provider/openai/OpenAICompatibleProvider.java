@@ -109,8 +109,12 @@ public class OpenAICompatibleProvider implements LLMProvider {
         Map<String, Object> body = new HashMap<>();
         body.put("model", model != null && !model.isEmpty() ? model : defaultModel);
         body.put("messages", messages);
-        body.put("max_tokens", maxTokens);
-        body.put("temperature", temperature);
+        if(maxTokens != null) {
+            body.put("max_tokens", maxTokens);
+        }
+        if(temperature != null) {
+            body.put("temperature", temperature);
+        }
         body.put("stream", true);
         if (tools != null && !tools.isEmpty()) {
             body.put("tools", tools);

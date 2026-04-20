@@ -19,7 +19,7 @@ public class CliApp {
             return;
         }
 
-        LLMProvider provider = new OpenAICompatibleProvider(config.getModelConfig("openai"));
+        LLMProvider provider = new OpenAICompatibleProvider(config.getModelConfig("glm"));
 
         AgentRuntime runtime = new CapabilityLoader()
             .withCapability(StandardCapability.EXEC_TOOL, config)
@@ -28,13 +28,13 @@ public class CliApp {
             .withCapability(StandardCapability.EDIT_FILE_TOOL, config)
             .withCapability(StandardCapability.SEARCH_FILES_TOOL, config)
             .withCapability(StandardCapability.LIST_DIRECTORY_TOOL, config)
-//            .withCapability(StandardCapability.BASE_PROMPT, config)
+            .withCapability(StandardCapability.BASE_PROMPT, config)
             .withCapability(StandardCapability.AGENTS_MD_PROMPT, config)
             .withCapability(StandardCapability.LOGGING_HOOK, config)
-//                .withCapability(StandardCapability.MCP_CLIENT, config)
+            .withCapability(StandardCapability.MCP_CLIENT, config)
             .build(provider, config);
 
-        String result = runtime.chat("给当前项目的 CliApp 类增加AGENTS_MD_PROMPT 工具，并进行测试(代码应该以及有了，确认一下，可以直接运行测试用例查看结果)");
+        String result = runtime.chat("简约整理一下今日新闻");
         System.out.println("\n[真实 API 模式] 最终结果：");
         System.out.println(result);
     }

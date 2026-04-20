@@ -45,5 +45,14 @@ public interface AgentHook {
     default void onThinking(String content, String reasoningContent) {}
 
     /** 在 AgentLoop 即将返回最终结果时调用。 */
-    default void onLoopEnd(String finalResponse) {}
+    default void onLoopEnd(String finalResponse) {
+        onLoopEnd(false, finalResponse);
+    }
+
+    /**
+     * 在 AgentLoop 即将返回最终结果时调用。
+     * @param maxIte 是否是超出最大迭代次数导致的
+     * @param finalResponse 返回信息
+     */
+    default void onLoopEnd(boolean maxIte, String finalResponse) {}
 }

@@ -38,3 +38,4 @@ target/
 .claude/
 .worktrees/
 /package.json
+/src/main/resources/coloop-agent-setting-test.json

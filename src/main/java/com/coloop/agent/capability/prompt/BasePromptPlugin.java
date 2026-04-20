@@ -17,8 +17,7 @@ public class BasePromptPlugin implements PromptPlugin {
         return "你是一个帮助用户完成软件工程任务的 AI 助手。\n"
              + "Current time: " + ctx.get("time") + "\n"
              + "Working directory: " + ctx.get("cwd") + "\n"
-             + "Platform: " + ctx.get("os") + "\n"
-             + "Model: " + config.getModel() + "\n\n"
+             + "Platform: " + ctx.get("os") + "\n\n"
              + "Always respond in the same language as the user's message.";
     }
 }
