@@ -23,10 +23,10 @@ public class McpCapabilityIntegrationTest {
     @Test
     public void testAppConfigFromSetting() throws Exception {
         AppConfig config = AppConfig.fromSetting("coloop-agent-setting.json");
-        config.applyModelConfig("openai");
         assertNotNull(config);
         assertNotNull(config.getMcpServers());
         assertTrue(config.getMcpServers().containsKey("MiniMax"));
+        assertNotNull(config.getModelConfig("openai"));
     }
 
     @Test
