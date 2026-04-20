@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class McpTransport {
@@ -23,7 +25,12 @@ public class McpTransport {
 
         try {
             ProcessBuilder pb = new ProcessBuilder();
-            pb.command(config.getCommand(), config.getArgs().toArray(new String[0]));
+            List<String> command = new ArrayList<>();
+            command.add(config.getCommand());
+            if (config.getArgs() != null) {
+                command.addAll(config.getArgs());
+            }
+            pb.command(command);
 
             if (config.getEnv() != null) {
                 Map<String, String> env = pb.environment();

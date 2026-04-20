@@ -3,6 +3,7 @@ package com.coloop.agent.capability.mcp;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.*;
 
@@ -100,7 +101,8 @@ public class McpClient {
                 tool.setDescription(toolNode.has("description") ?
                     toolNode.get("description").asText() : "");
                 if (toolNode.has("inputSchema")) {
-                    tool.setInputSchema(toolNode.get("inputSchema"));
+                    JsonNode inputSchemaNode = toolNode.get("inputSchema");
+                    tool.setInputSchema(objectMapper.convertValue(inputSchemaNode, Map.class));
                 }
                 tools.add(tool);
             }
