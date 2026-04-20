@@ -2,21 +2,20 @@ package com.coloop.agent.capability.mcp;
 
 import com.coloop.agent.core.tool.Tool;
 import com.coloop.agent.runtime.config.AppConfig;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.InputStream;
-import java.io.PrintStream;
 import java.util.*;
 
 public class McpCapability implements Tool {
+    private static final System.Logger logger = System.getLogger(McpCapability.class.getName());
+
     private final AppConfig config;
     private final Map<String, McpClient> clients = new HashMap<>();
     private final List<Tool> tools = new ArrayList<>();
     private boolean initialized = false;
-    private final PrintStream log = System.out;
 
     public McpCapability(AppConfig config) {
         this.config = config;
+        logger.log(System.Logger.Level.INFO, "MCP Capability initialized");
     }
 
     @Override
@@ -51,64 +50,64 @@ public class McpCapability implements Tool {
     }
 
     private void initialize() {
+        logger.log(System.Logger.Level.INFO, "Initializing MCP capability...");
         try {
-            McpServersConfig serversConfig = loadConfig();
-            if (serversConfig == null || serversConfig.getMcpServers() == null) {
-                System.err.println("No MCP servers configured");
+            Map<String, AppConfig.McpServerConfig> servers = config.getMcpServers();
+            if (servers == null || servers.isEmpty()) {
+                logger.log(System.Logger.Level.WARNING, "No MCP servers configured");
                 return;
             }
 
-            for (Map.Entry<String, McpServerConfig> entry : serversConfig.getMcpServers().entrySet()) {
-                String serverName = entry.getKey();
-                McpServerConfig serverConfig = entry.getValue();
-                log.println("Connecting to MCP server: " + serverName);
-
-                try {
-                    McpClient client = new McpClient(serverConfig);
-                    client.initialize();
-
-                    List<McpToolDefinition> mcpTools = client.listTools();
-                    for (McpToolDefinition mcpTool : mcpTools) {
-                        tools.add(new McpToolAdapter(mcpTool, client, serverName));
-                        log.println("  - Tool: " + mcpTool.getName());
-                    }
-                    clients.put(serverName, client);
-                } catch (McpException e) {
-                    System.err.println("Failed to connect to MCP server " + serverName + ": " + e.getMessage());
-                }
+            for (Map.Entry<String, AppConfig.McpServerConfig> entry : servers.entrySet()) {
+                connectServer(entry.getKey(), entry.getValue());
             }
+            logger.log(System.Logger.Level.INFO, "MCP capability initialized with " + tools.size() + " tools total");
         } catch (Exception e) {
-            System.err.println("Failed to initialize MCP capability: " + e.getMessage());
+            logger.log(System.Logger.Level.ERROR, "Failed to initialize MCP capability: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private McpServersConfig loadConfig() {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            String configPath = config.getMcpConfigPath();
-            InputStream is;
-
-            if (configPath != null && !configPath.isEmpty()) {
-                if (configPath.startsWith("classpath:")) {
-                    is = getClass().getResourceAsStream("/" + configPath.substring(10));
-                } else {
-                    is = new java.io.FileInputStream(configPath);
-                }
-            } else {
-                is = getClass().getResourceAsStream("/mcp-servers-config.json");
-            }
-
-            if (is == null) {
-                System.err.println("MCP config file not found");
-                return null;
-            }
-
-            return mapper.readValue(is, McpServersConfig.class);
-        } catch (Exception e) {
-            System.err.println("Failed to load MCP config: " + e.getMessage());
-            return null;
+    private void connectServer(String serverName, AppConfig.McpServerConfig serverConfig) {
+        if (clients.containsKey(serverName)) {
+            logger.log(System.Logger.Level.WARNING, "Server " + serverName + " already connected");
+            return;
         }
+
+        logger.log(System.Logger.Level.INFO, "Connecting to MCP server: " + serverName);
+        try {
+            McpClient client = new McpClient(serverConfig);
+            client.initialize();
+
+            List<McpToolDefinition> mcpTools = client.listTools();
+            logger.log(System.Logger.Level.INFO, "Server " + serverName + " provided " + mcpTools.size() + " tools:");
+            for (McpToolDefinition mcpTool : mcpTools) {
+                tools.add(new McpToolAdapter(mcpTool, client, serverName));
+                logger.log(System.Logger.Level.INFO, "  - Tool: " + mcpTool.getName());
+            }
+            clients.put(serverName, client);
+        } catch (McpException e) {
+            logger.log(System.Logger.Level.ERROR, "Failed to connect to MCP server " + serverName + ": " + e.getMessage());
+        }
+    }
+
+    public synchronized void addServer(String name, String command, List<String> args, Map<String, String> env) {
+        AppConfig.McpServerConfig serverConfig = new AppConfig.McpServerConfig();
+        serverConfig.setCommand(command);
+        serverConfig.setArgs(args != null ? args : new ArrayList<>());
+        serverConfig.setEnv(env != null ? env : new HashMap<>());
+
+        config.getMcpServers().put(name, serverConfig);
+        connectServer(name, serverConfig);
+    }
+
+    public synchronized void addServer(String name, AppConfig.McpServerConfig serverConfig) {
+        config.getMcpServers().put(name, serverConfig);
+        connectServer(name, serverConfig);
+    }
+
+    public Map<String, McpClient> getClients() {
+        return Collections.unmodifiableMap(clients);
     }
 
     public void close() {

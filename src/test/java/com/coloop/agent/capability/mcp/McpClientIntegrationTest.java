@@ -1,5 +1,6 @@
 package com.coloop.agent.capability.mcp;
 
+import com.coloop.agent.runtime.config.AppConfig;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -134,7 +135,7 @@ public class McpClientIntegrationTest {
         File serverScript = createEchoServerScript(tempDir);
 
         try {
-            McpServerConfig config = new McpServerConfig();
+            AppConfig.McpServerConfig config = new AppConfig.McpServerConfig();
             config.setCommand("E:\\systemApp\\miniConda\\envs\\py311\\python.exe");
             config.setArgs(List.of(serverScript.getAbsolutePath()));
             config.setEnv(Map.of());
@@ -158,7 +159,7 @@ public class McpClientIntegrationTest {
         File serverScript = createEchoServerScript(tempDir);
 
         try {
-            McpServerConfig config = new McpServerConfig();
+            AppConfig.McpServerConfig config = new AppConfig.McpServerConfig();
             config.setCommand("E:\\systemApp\\miniConda\\envs\\py311\\python.exe");
             config.setArgs(List.of(serverScript.getAbsolutePath()));
             config.setEnv(Map.of());
@@ -199,7 +200,7 @@ public class McpClientIntegrationTest {
         File serverScript = createEchoServerScript(tempDir);
 
         try {
-            McpServerConfig config = new McpServerConfig();
+            AppConfig.McpServerConfig config = new AppConfig.McpServerConfig();
             config.setCommand("E:\\systemApp\\miniConda\\envs\\py311\\python.exe");
             config.setArgs(List.of(serverScript.getAbsolutePath()));
             config.setEnv(Map.of());
@@ -227,7 +228,7 @@ public class McpClientIntegrationTest {
         File serverScript = createEchoServerScript(tempDir);
 
         try {
-            McpServerConfig config = new McpServerConfig();
+            AppConfig.McpServerConfig config = new AppConfig.McpServerConfig();
             config.setCommand("E:\\systemApp\\miniConda\\envs\\py311\\python.exe");
             config.setArgs(List.of(serverScript.getAbsolutePath()));
             config.setEnv(Map.of());
@@ -255,7 +256,7 @@ public class McpClientIntegrationTest {
         File serverScript = createEchoServerScript(tempDir);
 
         try {
-            McpServerConfig config = new McpServerConfig();
+            AppConfig.McpServerConfig config = new AppConfig.McpServerConfig();
             config.setCommand("E:\\systemApp\\miniConda\\envs\\py311\\python.exe");
             config.setArgs(List.of(serverScript.getAbsolutePath()));
             config.setEnv(Map.of());
@@ -286,7 +287,7 @@ public class McpClientIntegrationTest {
         File serverScript = createEchoServerScript(tempDir);
 
         try {
-            McpServerConfig config = new McpServerConfig();
+            AppConfig.McpServerConfig config = new AppConfig.McpServerConfig();
             config.setCommand("E:\\systemApp\\miniConda\\envs\\py311\\python.exe");
             config.setArgs(List.of(serverScript.getAbsolutePath()));
             config.setEnv(Map.of());

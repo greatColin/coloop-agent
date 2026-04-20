@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "chroma": {
-      "command": "E:\\systemApp\\miniConda\\envs\\py311\\python.exe",
-      "args": ["-m", "chroma_mcp"],
-      "env": {}
-    }
-  }
-}

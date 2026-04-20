@@ -17,7 +17,14 @@ public class MinimalDemo {
     public static void main(String[] args) {
         System.out.println("=== coloop-agent Minimal Demo ===\n");
 
-        AppConfig config = new AppConfig();
+        AppConfig config;
+        try {
+            config = AppConfig.fromSetting("coloop-agent-setting.json");
+            config.applyModelConfig("openai");
+        } catch (Exception e) {
+            System.out.println("Failed to load config, using default: " + e.getMessage());
+            config = new AppConfig();
+        }
         LLMProvider provider = buildMockProvider();
 
         AgentRuntime runtime = new CapabilityLoader()
@@ -27,6 +34,7 @@ public class MinimalDemo {
             .withCapability(StandardCapability.EDIT_FILE_TOOL, config)
             .withCapability(StandardCapability.SEARCH_FILES_TOOL, config)
             .withCapability(StandardCapability.LIST_DIRECTORY_TOOL, config)
+            .withCapability(StandardCapability.MCP_CLIENT, config)
             .withCapability(StandardCapability.BASE_PROMPT, config)
             .build(provider, config);
 

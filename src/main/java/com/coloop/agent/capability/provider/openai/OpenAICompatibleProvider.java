@@ -15,6 +15,7 @@ import okhttp3.Response;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,7 +38,27 @@ public class OpenAICompatibleProvider implements LLMProvider {
     private final String defaultModel;
     private final OkHttpClient client;
 
+    /**
+     * 从 AppConfig 创建 Provider（使用已设置的当前模型配置）。
+     */
     public OpenAICompatibleProvider(AppConfig config) {
+        this.apiKey = config.getApiKey();
+        this.apiBase = config.getApiBase();
+        this.defaultModel = config.getModel();
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(120, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .build();
+    }
+
+    /**
+     * 从配置加载指定模型的配置创建 Provider。
+     * @param config 配置对象，已加载所有模型和MCP配置
+     * @param modelName 模型名称，如 "openai"、"minimax"
+     */
+    public OpenAICompatibleProvider(AppConfig config, String modelName) {
+        config.applyModelConfig(modelName);
         this.apiKey = config.getApiKey();
         this.apiBase = config.getApiBase();
         this.defaultModel = config.getModel();

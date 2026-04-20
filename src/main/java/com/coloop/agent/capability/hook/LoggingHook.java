@@ -25,7 +25,25 @@ public class LoggingHook implements AgentHook {
 
     @Override
     public void onToolCall(ToolCallRequest toolCall, String result) {
-        System.out.println("[LOG] Tool executed: " + toolCall.getName());
+        String argsPreview = formatArgsPreview(toolCall.getArguments());
+        System.out.println("[LOG] Tool executed: " + toolCall.getName() + "(" + argsPreview + ")");
+    }
+
+    private String formatArgsPreview(Map<String, Object> args) {
+        if (args == null || args.isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, Object> entry : args.entrySet()) {
+            if (sb.length() > 0) sb.append(", ");
+            String value = String.valueOf(entry.getValue());
+            if (value.length() > 15) {
+                value = value.substring(0, 12) + "...";
+            }
+            sb.append(entry.getKey()).append("=").append(value);
+        }
+        String result = sb.toString();
+        return result.length() > 30 ? result.substring(0, 27) + "..." : result;
     }
 
     @Override

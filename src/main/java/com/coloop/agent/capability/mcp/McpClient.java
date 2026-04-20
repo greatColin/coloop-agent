@@ -1,5 +1,6 @@
 package com.coloop.agent.capability.mcp;
 
+import com.coloop.agent.runtime.config.AppConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -13,7 +14,7 @@ public class McpClient {
     private List<McpToolDefinition> cachedTools;
     private String serverName;
 
-    public McpClient(McpServerConfig config) {
+    public McpClient(AppConfig.McpServerConfig config) {
         this.transport = new McpTransport(config);
     }
 
@@ -39,8 +40,9 @@ public class McpClient {
         this.serverName = result.has("serverInfo") ?
             result.get("serverInfo").get("name").asText() : "unknown";
 
-        // 发送 initialized 通知
-        sendNotification("initialized", Collections.emptyMap());
+// 发送 initialized 通知 (使用完整的 method name)
+        sendNotification("notifications/initialized", Collections.emptyMap());
+        // 不调用 drainPendingOutput() - 让服务器自然处理
     }
 
     public List<McpToolDefinition> listTools() throws McpException {
@@ -48,7 +50,9 @@ public class McpClient {
             return cachedTools;
         }
 
-        JsonRpcRequest request = new JsonRpcRequest("tools/list", null);
+// 对于 MCP SDK 的服务器，需要在发送请求前确保之前的通知已被处理
+        // 发送 tools/list 请求 (使用空的 params 对象)
+        JsonRpcRequest request = new JsonRpcRequest("tools/list", Collections.emptyMap());
         ObjectNode response = sendRequest(request);
 
         if (response.has("error")) {

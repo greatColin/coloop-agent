@@ -1,0 +1,24 @@
+{
+  "models": {
+    "openai": {
+      "apiKey": "填写apiKey",
+      "apiBase": "填写openai风格url",
+      "model": "填写模型",
+      "maxTokens": 4096,
+      "temperature": 0.7
+    }
+  },
+  "mcpServers": {
+    "MiniMax": {
+      "description": "此处可以放mcp,例如miniMax的搜索mcp",
+      "command": "uvx",
+      "args": ["minimax-coding-plan-mcp"],
+      "env": {
+        "MINIMAX_API_KEY": "填写你的API密钥",
+        "MINIMAX_MCP_BASE_PATH": "本地输出目录路径，需保证路径存在且有写入权限",
+        "MINIMAX_API_HOST": "https://api.minimaxi.com",
+        "MINIMAX_API_RESOURCE_MODE": "可选，资源提供方式：url 或 local，默认 url"
+      }
+    }
+  }
+}

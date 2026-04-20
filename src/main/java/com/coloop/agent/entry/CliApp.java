@@ -11,15 +11,15 @@ public class CliApp {
     public static void main(String[] args) {
         System.out.println("=== coloop-agent CLI ===\n");
 
-        AppConfig config = AppConfig.fromEnv();
-
-        if (config.getApiKey().isEmpty()) {
-            System.out.println("真实 API 模式需要设置环境变量 COLIN_CODE_OPENAI_API_KEY（或 OPENAI_API_KEY），当前切换到 MinimalDemo 模式。\n");
-            MinimalDemo.main(args);
+        AppConfig config;
+        try {
+            config = AppConfig.fromSetting("coloop-agent-setting.json");
+        } catch (Exception e) {
+            System.out.println("Failed to load config: " + e.getMessage());
             return;
         }
 
-        LLMProvider provider = new OpenAICompatibleProvider(config);
+        LLMProvider provider = new OpenAICompatibleProvider(config, "openai");
 
         AgentRuntime runtime = new CapabilityLoader()
             .withCapability(StandardCapability.EXEC_TOOL, config)
@@ -30,9 +30,10 @@ public class CliApp {
             .withCapability(StandardCapability.LIST_DIRECTORY_TOOL, config)
             .withCapability(StandardCapability.BASE_PROMPT, config)
             .withCapability(StandardCapability.LOGGING_HOOK, config)
+                .withCapability(StandardCapability.MCP_CLIENT, config)
             .build(provider, config);
 
-        String result = runtime.chat("帮我看一下本地ip，用中文回答");
+        String result = runtime.chat("搜索一下今日要闻，简要总结给我");
         System.out.println("\n[真实 API 模式] 最终结果：");
         System.out.println(result);
     }
