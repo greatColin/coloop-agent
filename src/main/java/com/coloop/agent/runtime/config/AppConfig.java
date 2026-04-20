@@ -18,20 +18,14 @@ import java.util.Map;
 public class AppConfig {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final int DEFAULT_MAX_ITERATIONS = 50;
+    private static final int DEFAULT_EXEC_TIMEOUT_SECONDS = 30;
 
     // 存储所有模型配置
     private Map<String, ModelConfig> models = new HashMap<>();
 
-    // 当前使用的模型名称（可选，用于 Provider 创建后标识）
-    private String currentModelName;
-    private String model = "";
-    private String apiKey = "";
-    private String apiBase = "";
-
-    private int maxTokens = 2048;
-    private double temperature = 0.7;
-    private int maxIterations = 50;
-    private int execTimeoutSeconds = 30;
+    private Integer maxIterations;
+    private Integer execTimeoutSeconds;
 
     // MCP 服务器配置
     private Map<String, McpServerConfig> mcpServers = new HashMap<>();
@@ -90,48 +84,18 @@ public class AppConfig {
         return models.get(modelName);
     }
 
-    public String getCurrentModelName() { return currentModelName; }
-    public void setCurrentModelName(String currentModelName) { this.currentModelName = currentModelName; }
+    public int getMaxIterations() {
+        return maxIterations != null ? maxIterations : DEFAULT_MAX_ITERATIONS;
+    }
+    public void setMaxIterations(Integer maxIterations) { this.maxIterations = maxIterations; }
 
-    public String getModel() { return model; }
-    public void setModel(String model) { this.model = model; }
-
-    public String getApiKey() { return apiKey != null ? apiKey : ""; }
-    public void setApiKey(String apiKey) { this.apiKey = apiKey; }
-
-    public String getApiBase() { return apiBase; }
-    public void setApiBase(String apiBase) { this.apiBase = apiBase; }
-
-    public int getMaxTokens() { return maxTokens; }
-    public void setMaxTokens(int maxTokens) { this.maxTokens = maxTokens; }
-
-    public double getTemperature() { return temperature; }
-    public void setTemperature(double temperature) { this.temperature = temperature; }
-
-    public int getMaxIterations() { return maxIterations; }
-    public void setMaxIterations(int maxIterations) { this.maxIterations = maxIterations; }
-
-    public int getExecTimeoutSeconds() { return execTimeoutSeconds; }
-    public void setExecTimeoutSeconds(int execTimeoutSeconds) { this.execTimeoutSeconds = execTimeoutSeconds; }
+    public int getExecTimeoutSeconds() {
+        return execTimeoutSeconds != null ? execTimeoutSeconds : DEFAULT_EXEC_TIMEOUT_SECONDS;
+    }
+    public void setExecTimeoutSeconds(Integer execTimeoutSeconds) { this.execTimeoutSeconds = execTimeoutSeconds; }
 
     public Map<String, McpServerConfig> getMcpServers() { return mcpServers; }
     public void setMcpServers(Map<String, McpServerConfig> mcpServers) { this.mcpServers = mcpServers; }
-
-    /**
-     * 应用指定模型的配置到当前实例。
-     * @param modelName 模型名称，如 "openai"、"minimax"
-     */
-    public void applyModelConfig(String modelName) {
-        ModelConfig mc = models.get(modelName);
-        if (mc != null) {
-            this.currentModelName = modelName;
-            this.model = mc.getModel();
-            this.apiKey = mc.getApiKey();
-            this.apiBase = mc.getApiBase();
-            this.maxTokens = mc.getMaxTokens();
-            this.temperature = mc.getTemperature();
-        }
-    }
 
     // ==================== 静态工厂方法 ====================
 
@@ -140,6 +104,8 @@ public class AppConfig {
      */
     public static AppConfig fromEnv() {
         AppConfig config = new AppConfig();
+        ModelConfig mc = new ModelConfig();
+
         String model = System.getenv("COLIN_CODE_OPENAI_MODEL");
         if (model == null) model = System.getenv("OPENAI_MODEL");
 
@@ -149,9 +115,11 @@ public class AppConfig {
         String apiBase = System.getenv("COLIN_CODE_OPENAI_API_BASE");
         if (apiBase == null) apiBase = System.getenv("OPENAI_API_BASE");
 
-        if (model != null) config.setModel(model);
-        if (apiKey != null) config.setApiKey(apiKey);
-        if (apiBase != null) config.setApiBase(apiBase);
+        if (model != null) mc.setModel(model);
+        if (apiKey != null) mc.setApiKey(apiKey);
+        if (apiBase != null) mc.setApiBase(apiBase);
+
+        config.models.put("default", mc);
         return config;
     }
 
@@ -180,8 +148,8 @@ public class AppConfig {
                 mc.setModel(getString(modelNode, "model", ""));
                 mc.setApiKey(expandEnv(getString(modelNode, "apiKey", "")));
                 mc.setApiBase(getString(modelNode, "apiBase", ""));
-                mc.setMaxTokens(getInt(modelNode, "maxTokens", 2048));
-                mc.setTemperature(getDouble(modelNode, "temperature", 0.7));
+                mc.setMaxTokens(getInteger(modelNode, "maxTokens"));
+                mc.setTemperature(getDouble(modelNode, "temperature"));
                 config.models.put(name, mc);
             }
         }
@@ -198,8 +166,8 @@ public class AppConfig {
         }
 
         // 加载全局配置项
-        config.maxIterations = getInt(root, "maxIterations", 50);
-        config.execTimeoutSeconds = getInt(root, "execTimeoutSeconds", 30);
+        config.maxIterations = getInteger(root, "maxIterations");
+        config.execTimeoutSeconds = getInteger(root, "execTimeoutSeconds");
 
         return config;
     }
@@ -213,16 +181,23 @@ public class AppConfig {
         return defaultValue;
     }
 
+    private static Integer getInteger(JsonNode node, String field) {
+        if (node.has(field) && !node.get(field).isNull()) {
+            return node.get(field).asInt();
+        }
+        return null;
+    }
+
+    private static Double getDouble(JsonNode node, String field) {
+        if (node.has(field) && !node.get(field).isNull()) {
+            return node.get(field).asDouble();
+        }
+        return null;
+    }
+
     private static int getInt(JsonNode node, String field, int defaultValue) {
         if (node.has(field) && !node.get(field).isNull()) {
             return node.get(field).asInt(defaultValue);
-        }
-        return defaultValue;
-    }
-
-    private static double getDouble(JsonNode node, String field, double defaultValue) {
-        if (node.has(field) && !node.get(field).isNull()) {
-            return node.get(field).asDouble(defaultValue);
         }
         return defaultValue;
     }
