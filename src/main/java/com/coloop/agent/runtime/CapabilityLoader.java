@@ -1,5 +1,6 @@
 package com.coloop.agent.runtime;
 
+import com.coloop.agent.capability.mcp.McpCapability;
 import com.coloop.agent.core.agent.AgentHook;
 import com.coloop.agent.core.interceptor.InputInterceptor;
 import com.coloop.agent.core.message.MessageBuilder;
@@ -57,7 +58,14 @@ public class CapabilityLoader {
         Object instance = cap.create(config);
         switch (cap.getType()) {
             case TOOL:
-                withTool((Tool) instance);
+                if (instance instanceof McpCapability) {
+                    // MCP Capability returns multiple tools
+                    for (Tool tool : ((McpCapability) instance).getTools()) {
+                        withTool(tool);
+                    }
+                } else if (instance instanceof Tool) {
+                    withTool((Tool) instance);
+                }
                 break;
             case PROMPT_PLUGIN:
                 withPromptPlugin((PromptPlugin) instance);
