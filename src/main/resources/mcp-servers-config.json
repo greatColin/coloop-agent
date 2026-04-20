@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "example": {
-      "command": "echo",
-      "args": ["hello"],
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
       "env": {}
     }
   }
