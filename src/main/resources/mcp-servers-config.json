@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+    "chroma": {
+      "command": "E:\\systemApp\\miniConda\\envs\\py311\\python.exe",
+      "args": ["-m", "chroma_mcp"],
       "env": {}
     }
   }
