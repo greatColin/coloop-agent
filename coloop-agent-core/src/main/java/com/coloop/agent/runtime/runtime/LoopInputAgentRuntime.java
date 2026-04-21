@@ -27,6 +27,11 @@ public class LoopInputAgentRuntime {
                 scanner.close();
                 return "";
             }
+            if("/new-session".equals(input)) {
+                agentLoop.reset();
+                System.out.println("[SYSTEM] New session started. Previous context cleared.");
+                continue;
+            }
             agentLoop.chat(input);
         }
     }

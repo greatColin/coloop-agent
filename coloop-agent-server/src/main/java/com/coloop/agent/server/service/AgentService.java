@@ -32,6 +32,21 @@ public class AgentService {
     public void startChat(String userMessage, WebSocketSession session) {
         SessionContext ctx = sessions.computeIfAbsent(session.getId(), k -> new SessionContext());
 
+        String trimmed = userMessage.trim();
+
+        // 处理 /new-session 命令
+        if ("/new-session".equals(trimmed)) {
+            synchronized (ctx) {
+                if (ctx.isRunning) {
+                    sendSystem(session, "A task is currently running. Please wait for it to complete before starting a new session.");
+                    return;
+                }
+                ctx.agentLoop = null;
+                sendSystem(session, "New session started. Previous context cleared.");
+                return;
+            }
+        }
+
         synchronized (ctx) {
             if (ctx.isRunning && ctx.agentLoop != null) {
                 ctx.agentLoop.injectUserMessage(userMessage);
@@ -42,25 +57,30 @@ public class AgentService {
 
         executor.submit(() -> {
             try {
-                AppConfig config = AppConfig.fromSetting("coloop-agent-setting.json");
-                LLMProvider provider = new OpenAICompatibleProvider(config.getModelConfig("minimax"));
-                WebSocketLoggingHook hook = new WebSocketLoggingHook(session);
-
-                AgentLoop agentLoop = new CapabilityLoader()
-                        .withCapability(StandardCapability.EXEC_TOOL, config)
-                        .withCapability(StandardCapability.READ_FILE_TOOL, config)
-                        .withCapability(StandardCapability.WRITE_FILE_TOOL, config)
-                        .withCapability(StandardCapability.EDIT_FILE_TOOL, config)
-                        .withCapability(StandardCapability.SEARCH_FILES_TOOL, config)
-                        .withCapability(StandardCapability.LIST_DIRECTORY_TOOL, config)
-                        .withCapability(StandardCapability.BASE_PROMPT, config)
-                        .withCapability(StandardCapability.AGENTS_MD_PROMPT, config)
-                        .withCapability(StandardCapability.LOGGING_HOOK, config)
-                        .withHook(hook)
-                        .build(provider, config);
-
+                AgentLoop agentLoop;
                 synchronized (ctx) {
-                    ctx.agentLoop = agentLoop;
+                    if (ctx.agentLoop == null) {
+                        AppConfig config = AppConfig.fromSetting("coloop-agent-setting.json");
+                        LLMProvider provider = new OpenAICompatibleProvider(config.getModelConfig("minimax"));
+                        WebSocketLoggingHook hook = new WebSocketLoggingHook(session);
+
+                        agentLoop = new CapabilityLoader()
+                                .withCapability(StandardCapability.EXEC_TOOL, config)
+                                .withCapability(StandardCapability.READ_FILE_TOOL, config)
+                                .withCapability(StandardCapability.WRITE_FILE_TOOL, config)
+                                .withCapability(StandardCapability.EDIT_FILE_TOOL, config)
+                                .withCapability(StandardCapability.SEARCH_FILES_TOOL, config)
+                                .withCapability(StandardCapability.LIST_DIRECTORY_TOOL, config)
+                                .withCapability(StandardCapability.BASE_PROMPT, config)
+                                .withCapability(StandardCapability.AGENTS_MD_PROMPT, config)
+                                .withCapability(StandardCapability.LOGGING_HOOK, config)
+                                .withHook(hook)
+                                .build(provider, config);
+
+                        ctx.agentLoop = agentLoop;
+                    } else {
+                        agentLoop = ctx.agentLoop;
+                    }
                 }
 
                 agentLoop.chat(userMessage);
@@ -68,7 +88,6 @@ public class AgentService {
                 sendError(session, e.getMessage());
             } finally {
                 synchronized (ctx) {
-                    ctx.agentLoop = null;
                     ctx.isRunning = false;
                 }
             }
@@ -89,6 +108,19 @@ public class AgentService {
             session.sendMessage(new TextMessage(json));
         } catch (Exception e) {
             System.err.println("Failed to send error message: " + e.getMessage());
+        }
+    }
+
+    private void sendSystem(WebSocketSession session, String message) {
+        if (!session.isOpen()) {
+            return;
+        }
+        try {
+            WebSocketMessage systemMsg = WebSocketMessage.system(message);
+            String json = objectMapper.writeValueAsString(systemMsg);
+            session.sendMessage(new TextMessage(json));
+        } catch (Exception e) {
+            System.err.println("Failed to send system message: " + e.getMessage());
         }
     }
 }

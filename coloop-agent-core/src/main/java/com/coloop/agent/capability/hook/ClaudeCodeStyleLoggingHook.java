@@ -133,6 +133,12 @@ public class ClaudeCodeStyleLoggingHook implements AgentHook {
         }
     }
 
+    @Override
+    public void onUserMessageInjected(String message) {
+        printUserInput(message);
+        System.out.println();
+    }
+
     // ==================== 私有打印方法 ====================
 
     /**

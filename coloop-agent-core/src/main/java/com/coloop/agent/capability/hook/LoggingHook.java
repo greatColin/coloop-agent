@@ -51,4 +51,9 @@ public class LoggingHook implements AgentHook {
             System.out.println("[LOOP ERROR] Loop end. max loop");
         }
     }
+
+    @Override
+    public void onUserMessageInjected(String message) {
+        System.out.println("[USER INPUT] " + message);
+    }
 }

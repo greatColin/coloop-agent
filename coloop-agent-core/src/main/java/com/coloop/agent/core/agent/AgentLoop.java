@@ -248,6 +248,12 @@ public class AgentLoop {
         pendingUserMessages.offer(userMessage);
     }
 
+    /** 重置会话状态，清空消息历史和待注入消息队列。 */
+    public void reset() {
+        this.messages = null;
+        this.pendingUserMessages.clear();
+    }
+
     /** 将等待中的用户消息注入消息历史并通知钩子。 */
     private void injectPendingUserMessages() {
         String msg;
