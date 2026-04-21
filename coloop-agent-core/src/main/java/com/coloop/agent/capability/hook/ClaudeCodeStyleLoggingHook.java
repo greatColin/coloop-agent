@@ -239,7 +239,7 @@ public class ClaudeCodeStyleLoggingHook implements AgentHook {
      * </pre>
      */
     private void printOutput(String content) {
-        content = content.trim();
+        content = content != null ? content.trim() : "";
         String border = BORDER_H.repeat(BORDER_WIDTH);
         String label = AnsiColors.colorize("[ OUTPUT ]", AnsiColors.OUTPUT_COLOR);
         
