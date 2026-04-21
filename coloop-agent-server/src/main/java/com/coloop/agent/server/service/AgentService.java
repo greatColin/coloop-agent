@@ -1,0 +1,65 @@
+package com.coloop.agent.server.service;
+
+import com.coloop.agent.capability.provider.openai.OpenAICompatibleProvider;
+import com.coloop.agent.core.agent.AgentLoop;
+import com.coloop.agent.core.provider.LLMProvider;
+import com.coloop.agent.runtime.CapabilityLoader;
+import com.coloop.agent.runtime.StandardCapability;
+import com.coloop.agent.runtime.config.AppConfig;
+import com.coloop.agent.server.hook.WebSocketLoggingHook;
+import com.coloop.agent.server.dto.WebSocketMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Service;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+@Service
+public class AgentService {
+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public void startChat(String userMessage, WebSocketSession session) {
+        executor.submit(() -> {
+            try {
+                AppConfig config = AppConfig.fromSetting("coloop-agent-setting.json");
+                LLMProvider provider = new OpenAICompatibleProvider(config.getModelConfig("minimax"));
+                WebSocketLoggingHook hook = new WebSocketLoggingHook(session);
+
+                AgentLoop agentLoop = new CapabilityLoader()
+                        .withCapability(StandardCapability.EXEC_TOOL, config)
+                        .withCapability(StandardCapability.READ_FILE_TOOL, config)
+                        .withCapability(StandardCapability.WRITE_FILE_TOOL, config)
+                        .withCapability(StandardCapability.EDIT_FILE_TOOL, config)
+                        .withCapability(StandardCapability.SEARCH_FILES_TOOL, config)
+                        .withCapability(StandardCapability.LIST_DIRECTORY_TOOL, config)
+                        .withCapability(StandardCapability.BASE_PROMPT, config)
+                        .withCapability(StandardCapability.AGENTS_MD_PROMPT, config)
+                        .withCapability(StandardCapability.LOGGING_HOOK, config)
+                        .withHook(hook)
+                        .build(provider, config);
+
+                agentLoop.chat(userMessage);
+            } catch (Exception e) {
+                sendError(session, e.getMessage());
+            }
+        });
+    }
+
+    private void sendError(WebSocketSession session, String message) {
+        if (!session.isOpen()) {
+            return;
+        }
+        try {
+            WebSocketMessage errorMsg = WebSocketMessage.error(message);
+            String json = objectMapper.writeValueAsString(errorMsg);
+            session.sendMessage(new TextMessage(json));
+        } catch (Exception e) {
+            System.err.println("Failed to send error message: " + e.getMessage());
+        }
+    }
+}

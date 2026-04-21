@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>coloop-agent Web</title>
+    <link rel="stylesheet" href="chat.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>coloop-agent Web</h1>
+            <span id="connection-status" class="status connecting">连接中...</span>
+        </header>
+        <main class="chat-container" id="chat-container">
+            <!-- 消息将动态插入这里 -->
+        </main>
+        <footer class="input-area">
+            <textarea id="message-input" placeholder="输入消息... (Shift+Enter 换行, Enter 发送)" rows="2"></textarea>
+            <button id="send-btn" disabled>发送</button>
+        </footer>
+    </div>
+    <script src="chat.js"></script>
+</body>
+</html>
