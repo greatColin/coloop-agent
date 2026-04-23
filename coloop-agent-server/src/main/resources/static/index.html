@@ -4,13 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>coloop-agent Web</title>
-    <link rel="stylesheet" href="chat.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link id="theme-link" rel="stylesheet" href="themes/claude.css">
 </head>
 <body>
     <div class="app">
         <header class="header">
             <h1>coloop-agent Web</h1>
-            <span id="connection-status" class="status connecting">连接中...</span>
+            <div class="header-right">
+                <div class="theme-switcher">
+                    <label for="theme-select">主题</label>
+                    <select id="theme-select">
+                        <option value="claude">Claude 优雅紫</option>
+                        <option value="chatgpt">ChatGPT 极简</option>
+                        <option value="cursor">Cursor 极客暗</option>
+                        <option value="discord">Discord 社交暗</option>
+                        <option value="linear">Linear 专业白</option>
+                        <option value="telegram">Telegram 明快</option>
+                        <option value="terminal">终端复古</option>
+                        <option value="glass">玻璃华丽</option>
+                    </select>
+                    <a href="theme-gallery.html">浏览全部</a>
+                </div>
+                <span id="connection-status" class="status connecting">连接中...</span>
+            </div>
         </header>
         <main class="chat-container" id="chat-container">
             <!-- 消息将动态插入这里 -->
@@ -20,6 +39,30 @@
             <button id="send-btn" disabled>发送</button>
         </footer>
     </div>
+
     <script src="chat.js"></script>
+    <script>
+        (function() {
+            var themeLink = document.getElementById('theme-link');
+            var themeSelect = document.getElementById('theme-select');
+            var STORAGE_KEY = 'coloop-agent-theme';
+            var DEFAULT_THEME = 'claude';
+
+            function loadTheme(themeName) {
+                themeName = themeName || localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
+                themeLink.href = 'themes/' + themeName + '.css';
+                themeSelect.value = themeName;
+            }
+
+            themeSelect.addEventListener('change', function() {
+                var themeName = themeSelect.value;
+                themeLink.href = 'themes/' + themeName + '.css';
+                localStorage.setItem(STORAGE_KEY, themeName);
+            });
+
+            // Load saved theme on page load
+            loadTheme();
+        })();
+    </script>
 </body>
 </html>

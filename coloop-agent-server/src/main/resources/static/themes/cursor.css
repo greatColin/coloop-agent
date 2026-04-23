@@ -1,0 +1,337 @@
+/* Cursor Developer Dark - inspired by Cursor IDE */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    background: #0f172a;
+    color: #e2e8f0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 900px;
+    margin: 0 auto;
+    background: #0f172a;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+}
+
+.header h1 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.status.connecting { background: #451a03; color: #fbbf24; }
+.status.connected { background: #064e3b; color: #34d399; }
+.status.disconnected { background: #450a0a; color: #f87171; }
+
+/* Chat Container */
+.chat-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: #0f172a;
+}
+
+/* Message base */
+.message {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: break-word;
+    flex-shrink: 0;
+}
+
+/* User message */
+.message.user {
+    align-self: flex-end;
+    background: #1e40af;
+    color: #fff;
+    border-radius: 6px;
+    border: 1px solid #3b82f6;
+}
+
+/* Assistant message */
+.message.assistant {
+    align-self: flex-start;
+    background: transparent;
+    color: #e2e8f0;
+    border: none;
+    padding: 0;
+    line-height: 1.6;
+}
+
+/* Loop start */
+.message.loop-start {
+    align-self: center;
+    background: transparent;
+    color: #64748b;
+    font-size: 11px;
+    padding: 4px 12px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* System message */
+.message.system {
+    align-self: center;
+    background: transparent;
+    color: #fbbf24;
+    font-size: 11px;
+    padding: 4px 12px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Error message */
+.message.error {
+    align-self: center;
+    background: transparent;
+    color: #f87171;
+    font-size: 11px;
+    padding: 4px 12px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Cards */
+.card {
+    flex-shrink: 0;
+    max-width: 90%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #334155;
+    font-size: 12px;
+}
+
+/* Thinking card */
+.card.thinking {
+    align-self: flex-start;
+    background: #1e293b;
+    border-color: #475569;
+}
+
+.card.thinking .card-header {
+    background: #334155;
+    color: #94a3b8;
+}
+
+.card.thinking .card-header:hover {
+    background: #475569;
+}
+
+.card-title {
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.card-toggle {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.card-body {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+    font-family: 'JetBrains Mono', monospace;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.card-preview {
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-top: 1px solid #334155;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.card-preview.collapsed {
+    display: none;
+}
+
+.card-body.collapsed {
+    display: none;
+}
+
+/* Tool call card */
+.card.tool-call {
+    align-self: flex-start;
+    background: #292524;
+    border-color: #f59e0b;
+}
+
+.card.tool-call .card-header {
+    background: #451a03;
+    color: #fbbf24;
+}
+
+.card.tool-call .card-header:hover {
+    background: #78350f;
+}
+
+.card.tool-call .card-title {
+    color: #fbbf24;
+}
+
+/* Tool result card */
+.card.tool-result {
+    align-self: flex-start;
+    background: #064e3b;
+    border-color: #10b981;
+}
+
+.card.tool-result .card-header {
+    background: #065f46;
+    color: #34d399;
+}
+
+.card.tool-result .card-header:hover {
+    background: #047857;
+}
+
+.card.tool-result .card-title {
+    color: #34d399;
+}
+
+.card.tool-result .card-body {
+    color: #cbd5e1;
+    background: #064e3b;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Input area */
+.input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #1e293b;
+    border-top: 1px solid #334155;
+}
+
+.input-area textarea {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    resize: none;
+    outline: none;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.input-area textarea:focus {
+    border-color: #3b82f6;
+}
+
+.input-area textarea:disabled {
+    background: #1e293b;
+    color: #64748b;
+}
+
+.input-area button {
+    padding: 8px 16px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.input-area button:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+
+.input-area button:disabled {
+    background: #475569;
+    cursor: not-allowed;
+}
+
+/* Theme switcher */
+.theme-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.theme-switcher label {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.theme-switcher select {
+    padding: 4px 10px;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    background: #0f172a;
+    color: #e2e8f0;
+    cursor: pointer;
+    outline: none;
+}
+
+.theme-switcher select:focus {
+    border-color: #3b82f6;
+}
+
+.theme-switcher a {
+    font-size: 11px;
+    color: #3b82f6;
+    text-decoration: none;
+    margin-left: 8px;
+}
+
+.theme-switcher a:hover {
+    text-decoration: underline;
+}

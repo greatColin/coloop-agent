@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主题预览</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link id="theme-link" rel="stylesheet" href="themes/claude.css">
+    <style>
+        html, body { height: 100%; }
+        body { overflow: hidden; }
+        .app { height: 100vh; max-width: 100%; box-shadow: none; border-radius: 0; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>coloop-agent Web</h1>
+            <div class="header-right">
+                <div class="theme-switcher" style="display:none;">
+                    <span class="status connected">已连接</span>
+                </div>
+            </div>
+        </header>
+        <main class="chat-container">
+            <div class="msg message user">分析一下这个项目的代码结构</div>
+            <div class="msg message loop-start">▶ Attempt 1...</div>
+            <div class="card thinking">
+                <div class="card-header">
+                    <span class="card-title">💭 Thinking</span>
+                    <span class="card-toggle">▼</span>
+                </div>
+                <div class="card-preview" style="display:none;">分析代码结构的需求...</div>
+                <div class="card-body">[REASONING]
+用户要求分析项目代码结构...
+
+[THINK]
+1. 使用 list_directory 工具
+2. 识别项目类型</div>
+            </div>
+            <div class="card tool-call">
+                <div class="card-header">
+                    <span class="card-title">🔧 list_directory</span>
+                    <span class="card-toggle">▶</span>
+                </div>
+                <div class="card-preview">Args: path=/project</div>
+                <div class="card-body collapsed">Name: list_directory
+Args:
+  path: /project</div>
+            </div>
+            <div class="card tool-result">
+                <div class="card-header">
+                    <span class="card-title">✅ Result: list_directory</span>
+                    <span class="card-toggle">▶</span>
+                </div>
+                <div class="card-preview">core/ capability/ runtime/ entry/</div>
+                <div class="card-body collapsed">core/
+capability/
+runtime/
+entry/</div>
+            </div>
+            <div class="msg message assistant">这是一个 Maven 多模块项目，包含 core、capability、runtime、entry 四层架构...</div>
+            <div class="msg message system">已保存到会话历史</div>
+        </main>
+        <footer class="input-area">
+            <div class="input-box" style="flex:1; padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; color:#9ca3af;">输入消息...</div>
+            <button class="send-btn" style="padding:10px 20px; border:none; border-radius:8px; font-size:14px; cursor:pointer;">发送</button>
+        </footer>
+    </div>
+    <script>
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var theme = params.get('theme') || 'claude';
+            document.getElementById('theme-link').href = 'themes/' + theme + '.css';
+        })();
+    </script>
+</body>
+</html>
