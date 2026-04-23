@@ -1,6 +1,7 @@
 {
   "maxIterations": 50,
   "execTimeoutSeconds": 30,
+  "defaultModel": "minimax",
   "models": {
     "openai": {
       "apiKey": "${COLIN_CODE_OPENAI_API_KEY}",

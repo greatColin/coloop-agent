@@ -24,6 +24,7 @@ public class AppConfig {
     // 存储所有模型配置
     private Map<String, ModelConfig> models = new HashMap<>();
 
+    private String defaultModel;
     private Integer maxIterations;
     private Integer execTimeoutSeconds;
 
@@ -80,8 +81,22 @@ public class AppConfig {
     public Map<String, ModelConfig> getModels() { return models; }
     public void setModels(Map<String, ModelConfig> models) { this.models = models; }
 
+    public String getDefaultModel() {
+        return defaultModel;
+    }
+    public void setDefaultModel(String defaultModel) {
+        this.defaultModel = defaultModel;
+    }
+
     public ModelConfig getModelConfig(String modelName) {
         return models.get(modelName);
+    }
+
+    public ModelConfig getDefaultModelConfig() {
+        if (defaultModel != null && !defaultModel.isEmpty() && models.containsKey(defaultModel)) {
+            return models.get(defaultModel);
+        }
+        return models.isEmpty() ? null : models.values().iterator().next();
     }
 
     public int getMaxIterations() {
@@ -166,6 +181,7 @@ public class AppConfig {
         }
 
         // 加载全局配置项
+        config.defaultModel = getString(root, "defaultModel", null);
         config.maxIterations = getInteger(root, "maxIterations");
         config.execTimeoutSeconds = getInteger(root, "execTimeoutSeconds");
 

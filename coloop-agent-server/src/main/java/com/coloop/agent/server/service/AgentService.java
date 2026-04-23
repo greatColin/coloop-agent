@@ -64,7 +64,7 @@ public class AgentService {
                 synchronized (ctx) {
                     if (ctx.agentLoop == null) {
                         AppConfig config = AppConfig.fromSetting("coloop-agent-setting.json");
-                        LLMProvider provider = new OpenAICompatibleProvider(config.getModelConfig("minimax"));
+                        LLMProvider provider = new OpenAICompatibleProvider(config.getDefaultModelConfig());
                         WebSocketLoggingHook hook = new WebSocketLoggingHook(session);
 
                         agentLoop = new CapabilityLoader()
