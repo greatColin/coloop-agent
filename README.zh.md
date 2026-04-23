@@ -138,15 +138,16 @@ mvn compile exec:java -Dexec.mainClass="com.coloop.agent.entry.CliApp"
 | **环境感知提示** | BasePrompt 自动注入时间、OS、工作目录，减少 LLM 的“幻觉” |
 
 ### 我们缺失的（对 Vibe Coding / Spec Coding 有高价值）
+
+#### 后端 / 核心 Loop
 | 缺失能力 | 影响说明 | 优先级 |
 |----------|----------|--------|
 | **文件系统工具** | ✅ 已实现：`read_file`、`write_file`、`edit_file`、`search_files`、`list_directory` | P0 |
 | **对话历史持久化** | ✅ 已实现：`AgentLoop` 维护跨轮次消息列表 | P0 |
-| **流式输出（Streaming）** | ✅ 已实现：`LLMProvider.chatStream()` + `OpenAICompatibleProvider` SSE 逐字输出 | P0 |
-| **计划模式（Plan Mode）** | 无法让 Agent 先制定计划、获得用户确认后再执行，容易“先做后错” | P1 |
+| **流式输出（后端）** | ✅ 已实现：`LLMProvider.chatStream()` + `OpenAICompatibleProvider` SSE 逐字输出 | P0 |
+| **计划模式（Plan Mode）** | 无法让 Agent 先制定计划、获得用户确认后再执行，容易”先做后错” | P1 |
 | **并行 Tool Calls** | OpenAI API 支持一次请求返回多个 tool call，但我们目前串行执行 | P1 |
 | **上下文压缩 / 滑动窗口** | 长会话会导致消息列表膨胀，最终超出模型上下文限制 | P1 |
-| **Skill 执行框架** | 现有 `SkillPromptPlugin` 只注入说明，没有真正的 `/skill` 路由和参数解析 | P1 |
 | **Git 集成** | 无法自动查看 diff、status、生成 commit message、创建分支 | P1 |
 | **Checkpoint / 回滚** | 无法像 Aider 一样对代码变更做快照和撤销 | P2 |
 | **MCP（Model Context Protocol）支持** | 无法接入外部数据源、数据库、文档系统等标准化接口 | P2 |
@@ -155,13 +156,30 @@ mvn compile exec:java -Dexec.mainClass="com.coloop.agent.entry.CliApp"
 | **浏览器/截图能力** | 无法验证 Web UI 效果，限制前端开发场景 | P3 |
 | **会话恢复** | 进程退出后无法恢复之前的对话状态和未完成的任务 | P3 |
 
+#### 前端 / Web UI
+| 缺失能力 | 影响说明 | 优先级 |
+|----------|----------|--------|
+| **流式输出（前端）** | 后端已支持 SSE，但 `AgentService` 仍调用同步 `chat()`，UI 一次性渲染完整回复 | P0 |
+| **Markdown 渲染** | AI 回复是纯文本，未渲染粗体、列表、链接、表格、代码块等 | P0 |
+| **代码语法高亮** | 助手回复和工具结果中的代码片段无高亮 | P0 |
+| **命令系统** | `/new-session` 硬编码在 `AgentService`；`InputInterceptor` 零实现；无动态命令注册表 | P1 |
+| **斜杠命令自动补全** | 输入 `/` 无反应，用户必须死记硬背命令 | P1 |
+| **会话历史侧边栏** | 仅有一个内存会话，刷新页面即丢失，无 localStorage 持久化 | P1 |
+| **模型切换** | `AppConfig` 支持多模型，但用户无法在运行时从 UI 切换 | P1 |
+| **消息操作** | 聊天气泡上无复制、重新生成、编辑消息等操作 | P1 |
+| **设置面板** | 无 UI 调节温度、max_tokens、字体大小、流式开关 | P2 |
+| **欢迎页 / 空状态** | 新会话显示空白聊天区，无介绍和快速启动示例 | P2 |
+| **工具结果可视化** | 文件读取、编辑、搜索结果均为纯文本，无 diff 视图、行号、匹配高亮 | P2 |
+| **Skill 执行框架** | `SkillPromptPlugin` 只注入说明，无真正的 `/skill` 路由和参数解析 | P2 |
+| **导出 / 分享** | 无法将对话保存为 Markdown 或生成分享链接 | P3 |
+| **会话内搜索** | 无 Cmd+F 搜索当前聊天内容 | P3 |
+| **多模态输入** | 无法上传图片或文件供 LLM 分析 | P3 |
+
 ---
 
-## 未来需求与路线图（头脑风暴整理）
+## 路线图
 
-基于上述差异，结合“核心 Agent Loop 内核”这一定位，我们整理出以下发展方向：
-
-### 阶段一：让 Loop 能写代码（基础生存能力） ✅ 已完成
+### 阶段一：让 Loop 能写代码（后端基础） ✅ 已完成
 1. **文件工具集（Filesystem Tools）**
    - ✅ `read_file`：读取文件内容，支持行号范围、偏移量
    - ✅ `write_file`：创建新文件（拒绝覆盖已存在文件）
@@ -170,43 +188,97 @@ mvn compile exec:java -Dexec.mainClass="com.coloop.agent.entry.CliApp"
    - ✅ `list_directory`：目录 listing
 2. **对话历史持久化** ✅
    - `AgentLoop` 内部维护消息列表，支持多轮 `chat()`
-3. **流式输出支持** ✅
+3. **流式输出（后端）** ✅
    - `LLMProvider.chatStream()` 接口，默认退化为同步模式
    - `OpenAICompatibleProvider` 实现 SSE 逐字输出
    - 支持流式中的 Tool Call 检测与累积
+4. **Web UI 基础** ✅
+   - 基于 WebSocket 的实时聊天界面
+   - Thinking、Tool Call、Tool Result 可折叠卡片
+   - 8 套主题 + 主题画廊
+   - 自动重连与连接状态指示
 
-### 阶段二：让 Loop 更可靠（工程化体验）
-4. **计划模式（Plan Mode）**
-   - 检测到复杂任务时，Agent 先输出计划，用户确认后再执行
-   - 与 `InputInterceptor` 结合，支持 `/plan` 快捷指令
-5. **并行 Tool Calls**
-   - 一轮 LLM 响应中多个 tool call 并行执行，缩短总耗时
-6. **上下文管理**
-   -  token 计数估算与自动摘要（`/compact`）
-   - 超长对话时自动丢弃早期非关键消息
-7. **Git 集成工具**
-   - `git_status`、`git_diff`、`git_commit`、`git_branch`
-   - 自动在关键操作前查看 diff，防止误改
+### 阶段二：前端基础 + 命令系统（当前重点）
+5. **命令系统重构**
+   - 定义 `Command` 接口 + `CommandRegistry` 动态注册
+   - 将硬编码命令（`/new-session`、`/exit`）从 `AgentService` 和 `AgentLoopThread` 迁移到注册表
+   - 实现 `/compact`、`/model` 等内置命令
+   - 目录扫描加载用户自定义命令（如 `~/.coloop/commands/`）
+   - 将 `CommandInterceptor` 接入 `InputInterceptor`，使 `CapabilityLoader` 可组装
+6. **流式输出（前端）**
+   - `AgentService` 从 `agentLoop.chat()` 切换到 `agentLoop.chatStream()`
+   - 扩展 `WebSocketLoggingHook`，新增 `onStreamChunk()` 将 SSE 片段推送到浏览器
+   - 前端 `chat.js`：实时追加文本块，收到 `assistant_done` 标记后结束流状态
+7. **Markdown 渲染 + 代码高亮**
+   - 前端引入 `marked.js` 渲染助手消息
+   - 引入 `highlight.js` 做代码块语法高亮
+   - 对渲染的 HTML 做 XSS 过滤
+   - 所有 9 套主题补充代码块样式
+8. **斜杠命令自动补全**
+   - 后端在 WebSocket 连接时推送可用命令列表
+   - 前端输入 `/` 弹出命令面板，显示描述
+   - 键盘导航（方向键、Enter、Esc）
+9. **模型切换**
+   - 后端在 WebSocket 连接时暴露可用模型
+   - 前端在主题切换器旁添加模型下拉框
+   - 切换时重建该会话的 `LLMProvider` 使用新 `ModelConfig`
+10. **消息操作**
+    - 复制消息到剪贴板
+    - 重新生成最后一条助手回复
+    - 编辑历史用户消息并重新运行 Loop
 
-### 阶段三：让 Loop 更智能（进阶能力）
-8. **Skill 系统完整化**
-   - Skill 注册表 + 路由解析
-   - 支持用户自定义 Skill（如 `/tdd`、`/review`）
-9. **验证循环**
-   - 代码修改后自动执行 `mvn compile` 或测试套件
-   - 失败时将错误信息自动回传给 LLM 进行修复
-10. **Checkpoint 与回滚**
-    - 基于 Git 工作区或内存快照的变更回滚
-11. **MCP Client 支持**
+### 阶段三：会话管理 + 后端可靠性
+11. **会话历史侧边栏**
+    - localStorage / IndexedDB 持久化会话元数据和消息
+    - 左侧边栏：会话列表，显示标题、时间戳、消息数
+    - 新建 / 删除 / 重命名会话；自动以第一条用户消息生成标题
+    - 点击历史项恢复上下文（将消息重播进 `AgentLoop`）
+12. **计划模式（Plan Mode）**
+    - 检测到复杂任务时，Agent 先输出计划，用户确认后再执行
+    - 与 `InputInterceptor` 结合，支持 `/plan` 快捷指令
+13. **并行 Tool Calls**
+    - 一轮 LLM 响应中多个 tool call 并行执行，缩短总耗时
+14. **上下文管理**
+    - token 计数估算与自动摘要（`/compact`）
+    - 超长对话时自动丢弃早期非关键消息
+15. **Git 集成工具**
+    - `git_status`、`git_diff`、`git_commit`、`git_branch`
+    - 自动在关键操作前查看 diff，防止误改
+
+### 阶段四：前端打磨 + 进阶能力
+16. **设置面板**
+    - 温度、max_tokens、流式开关
+    - 字体大小等 UI 偏好
+    - 持久化到 localStorage
+17. **欢迎页 / 空状态**
+    - 新会话显示能力介绍和示例提示
+    - 快速启动按钮（”分析项目结构”、”写一个 Hello World”）
+18. **工具结果可视化**
+    - ReadFileTool：带语法高亮和行号的代码展示
+    - EditFileTool：红绿对比的 diff 视图
+    - SearchFilesTool：高亮匹配行，文件路径可点击
+    - ExecTool：终端风格输出，带退出码颜色
+19. **Skill 系统完整化**
+    - Skill 注册表 + 路由解析
+    - 支持用户自定义 Skill（如 `/tdd`、`/review`）
+20. **验证循环**
+    - 代码修改后自动执行 `mvn compile` 或测试套件
+    - 失败时将错误信息自动回传给 LLM 进行修复
+21. **MCP Client 支持**
     - 接入外部 MCP Server，扩展工具边界
 
-### 阶段四：生态与可扩展性
-12. **多 Agent 协调**
+### 阶段五：生态与可扩展性
+22. **Checkpoint 与回滚**
+    - 基于 Git 工作区或内存快照的变更回滚
+23. **多 Agent 协调**
     - 在现有 Hook 体系上，支持子 Agent / 专属 Loop 的委派
-13. **会话恢复与状态管理**
-    - 退出后重新进入可恢复对话和任务列表
-14. **浏览器工具**
+24. **导出 / 分享**
+    - 导出对话为 Markdown 文件
+    - 生成可分享链接（需后端会话持久化）
+25. **浏览器工具**
     - 基于 Playwright 或 Selenium 的截图与操作验证
+26. **多模态输入**
+    - 为支持视觉的模型上传图片和文件
 
 ---
 

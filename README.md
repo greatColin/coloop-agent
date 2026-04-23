@@ -138,15 +138,16 @@ Compared to mature tools like Claude Code, Aider, Cline, and Codex CLI, `coloop-
 | **Environment-Aware Prompts** | BasePrompt auto-injects time, OS, and working directory to reduce LLM hallucinations |
 
 ### What We Are Missing (High Value for Vibe / Spec Coding)
+
+#### Backend / Core Loop
 | Missing Capability | Impact | Priority |
 |--------------------|--------|----------|
 | **Filesystem Tools** | ✅ Done: `read_file`, `write_file`, `edit_file`, `search_files`, `list_directory` | P0 |
 | **Conversation History Persistence** | ✅ Done: `AgentLoop` maintains message list across `chat()` calls | P0 |
-| **Streaming Output** | ✅ Done: `LLMProvider.chatStream()` + `OpenAICompatibleProvider` SSE word-by-word | P0 |
+| **Streaming Output (Backend)** | ✅ Done: `LLMProvider.chatStream()` + `OpenAICompatibleProvider` SSE word-by-word | P0 |
 | **Plan Mode** | No way for the agent to draft a plan, get user confirmation, then execute | P1 |
 | **Parallel Tool Calls** | OpenAI API supports multiple tool calls per turn, but we execute them serially | P1 |
 | **Context Compression / Sliding Window** | Long sessions bloat the message list and eventually exceed context limits | P1 |
-| **Skill Execution Framework** | `SkillPromptPlugin` only injects descriptions; no real `/skill` routing or argument parsing | P1 |
 | **Git Integration** | Cannot auto-check diff, status, generate commit messages, or create branches | P1 |
 | **Checkpoint / Rollback** | No snapshot-and-revert of code changes like Aider | P2 |
 | **MCP (Model Context Protocol) Support** | Cannot connect to external data sources, databases, or document systems | P2 |
@@ -155,11 +156,30 @@ Compared to mature tools like Claude Code, Aider, Cline, and Codex CLI, `coloop-
 | **Browser / Screenshot Capability** | Cannot validate Web UI effects, limiting frontend dev scenarios | P3 |
 | **Session Recovery** | Cannot restore previous conversation state or pending tasks after process exit | P3 |
 
+#### Frontend / Web UI
+| Missing Capability | Impact | Priority |
+|--------------------|--------|----------|
+| **Streaming Output (Frontend)** | Backend supports SSE streaming, but `AgentService` still uses sync `chat()`; UI renders full response at once | P0 |
+| **Markdown Rendering** | AI responses are raw text; no bold, lists, links, tables, or code blocks rendered | P0 |
+| **Code Syntax Highlighting** | Code snippets in assistant replies and tool results have no highlighting | P0 |
+| **Command System** | `/new-session` is hardcoded in `AgentService`; `InputInterceptor` has no implementations registered; no dynamic command registry | P1 |
+| **Slash Command Autocomplete** | Typing `/` shows nothing; users must memorize commands | P1 |
+| **Session History Sidebar** | Only one in-memory session exists; refreshing the page loses everything; no localStorage persistence | P1 |
+| **Model Switching** | `AppConfig` supports multiple models, but users cannot switch at runtime from the UI | P1 |
+| **Message Actions** | No copy, regenerate, or edit-message capabilities on chat bubbles | P1 |
+| **Settings Panel** | No UI for temperature, max_tokens, font size, or stream toggle | P2 |
+| **Welcome / Empty State** | New sessions show a blank chat area; no intro or quick-start examples | P2 |
+| **Tool Result Visualization** | File reads, edits, and search results are plain text; no diff view, line numbers, or match highlighting | P2 |
+| **Skill Execution Framework** | `SkillPromptPlugin` only injects descriptions; no real `/skill` routing or argument parsing | P2 |
+| **Export / Share** | Cannot save a conversation as Markdown or generate a share link | P3 |
+| **In-Conversation Search** | No Cmd+F to search within the current chat | P3 |
+| **Multimodal Input** | Cannot upload images or files for the LLM to analyze | P3 |
+
 ---
 
-## Roadmap (Brainstormed)
+## Roadmap
 
-### Phase 1: Make the Loop Able to Write Code (Basic Survival) ✅ Done
+### Phase 1: Make the Loop Able to Write Code (Backend Foundation) ✅ Done
 1. **Filesystem Tools**
    - ✅ `read_file`: read file contents with line-range / offset support
    - ✅ `write_file`: create new files (refuses to overwrite existing files)
@@ -168,43 +188,97 @@ Compared to mature tools like Claude Code, Aider, Cline, and Codex CLI, `coloop-
    - ✅ `list_directory`: directory listing
 2. **Conversation History Persistence** ✅
    - `AgentLoop` maintains the message list internally, supporting multi-turn `chat()`
-3. **Streaming Output Support** ✅
+3. **Streaming Output (Backend)** ✅
    - `LLMProvider.chatStream()` interface with default fallback to synchronous `chat()`
    - `OpenAICompatibleProvider` implements true SSE word-by-word streaming
    - Detects and accumulates tool calls during the stream
+4. **Web UI Foundation** ✅
+   - WebSocket-based real-time chat interface
+   - Collapsible cards for thinking, tool calls, and tool results
+   - Theme system with 8 distinct themes + theme gallery
+   - Auto-reconnect and connection status indicator
 
-### Phase 2: Make the Loop Reliable (Engineering Experience)
-4. **Plan Mode**
-   - Agent outputs a plan first for complex tasks; user confirms before execution
-   - Integrate with `InputInterceptor` to support `/plan` shortcut
-5. **Parallel Tool Calls**
-   - Execute multiple tool calls from a single LLM response in parallel to reduce latency
-6. **Context Management**
-   - Token count estimation and auto-summarization (`/compact`)
-   - Automatically drop early non-critical messages in overly long conversations
-7. **Git Integration Tools**
-   - `git_status`, `git_diff`, `git_commit`, `git_branch`
-   - Auto-check diff before critical operations to prevent accidental changes
+### Phase 2: Frontend Foundation + Command System (Current Focus)
+5. **Command System Refactor**
+   - Define `Command` interface + `CommandRegistry` for dynamic registration
+   - Migrate hardcoded commands (`/new-session`, `/exit`) from `AgentService` and `AgentLoopThread` into the registry
+   - Implement `/compact`, `/model`, and other built-in commands
+   - Directory scanning for user-defined commands (e.g. `~/.coloop/commands/`)
+   - Wire `CommandInterceptor` into `InputInterceptor` so `CapabilityLoader` can assemble it
+6. **Streaming Output (Frontend)**
+   - Switch `AgentService` from `agentLoop.chat()` to `agentLoop.chatStream()`
+   - Extend `WebSocketLoggingHook` with `onStreamChunk()` to push SSE fragments to the browser
+   - Frontend `chat.js`: append chunks in real time, finalize on `assistant_done` marker
+7. **Markdown Rendering + Code Highlighting**
+   - Integrate `marked.js` for assistant message rendering
+   - Integrate `highlight.js` for code block syntax highlighting
+   - XSS sanitization for rendered HTML
+   - Theme-aware code block styling in all 9 themes
+8. **Slash Command Autocomplete**
+   - Backend pushes available command list on WebSocket connect
+   - Frontend: typing `/` pops up a command palette with descriptions
+   - Keyboard navigation (arrow keys, Enter, Esc)
+9. **Model Switching**
+   - Backend exposes available models via WebSocket on connect
+   - Frontend dropdown next to the theme switcher
+   - Switching rebuilds the session's `LLMProvider` with the new `ModelConfig`
+10. **Message Actions**
+    - Copy message to clipboard
+    - Regenerate last assistant response
+    - Edit a previous user message and re-run the loop
 
-### Phase 3: Make the Loop Smarter (Advanced Capabilities)
-8. **Complete Skill System**
-   - Skill registry + routing parser
-   - Support user-defined skills (e.g. `/tdd`, `/review`)
-9. **Verification Loop**
-   - Auto-run `mvn compile` or test suite after code changes
-   - Feed errors back to the LLM for automatic fixing
-10. **Checkpoint & Rollback**
-    - Rollback changes based on Git workspace or in-memory snapshots
-11. **MCP Client Support**
+### Phase 3: Session Management + Backend Reliability
+11. **Session History Sidebar**
+    - localStorage / IndexedDB persistence for session metadata and messages
+    - Left sidebar: session list with title, timestamp, and message count
+    - New / delete / rename sessions; auto-title from first user message
+    - Clicking a history item restores context (replays messages into `AgentLoop`)
+12. **Plan Mode**
+    - Agent outputs a plan first for complex tasks; user confirms before execution
+    - Integrate with `InputInterceptor` to support `/plan` shortcut
+13. **Parallel Tool Calls**
+    - Execute multiple tool calls from a single LLM response in parallel to reduce latency
+14. **Context Management**
+    - Token count estimation and auto-summarization (`/compact`)
+    - Automatically drop early non-critical messages in overly long conversations
+15. **Git Integration Tools**
+    - `git_status`, `git_diff`, `git_commit`, `git_branch`
+    - Auto-check diff before critical operations to prevent accidental changes
+
+### Phase 4: Frontend Polish + Advanced Capabilities
+16. **Settings Panel**
+    - Temperature, max_tokens, stream toggle
+    - Font size and other UI preferences
+    - Persisted in localStorage
+17. **Welcome / Empty State**
+    - Intro screen for new sessions with capability summary and example prompts
+    - Quick-start buttons ("Analyze project structure", "Write a Hello World")
+18. **Tool Result Visualization**
+    - ReadFileTool: syntax-highlighted code with line numbers
+    - EditFileTool: side-by-side diff view (red/green)
+    - SearchFilesTool: highlighted match lines with clickable file paths
+    - ExecTool: terminal-style output with exit-code coloring
+19. **Complete Skill System**
+    - Skill registry + routing parser
+    - Support user-defined skills (e.g. `/tdd`, `/review`)
+20. **Verification Loop**
+    - Auto-run `mvn compile` or test suite after code changes
+    - Feed errors back to the LLM for automatic fixing
+21. **MCP Client Support**
     - Connect to external MCP servers to extend tool boundaries
 
-### Phase 4: Ecosystem & Extensibility
-12. **Multi-Agent Coordination**
+### Phase 5: Ecosystem & Extensibility
+22. **Checkpoint & Rollback**
+    - Rollback changes based on Git workspace or in-memory snapshots
+23. **Multi-Agent Coordination**
     - Support sub-agent / dedicated loop delegation on top of the existing Hook system
-13. **Session Recovery & State Management**
-    - Resume conversations and task lists after re-entering the app
-14. **Browser Tools**
+24. **Export / Share**
+    - Export conversation as Markdown file
+    - Shareable links (requires backend session persistence)
+25. **Browser Tools**
     - Screenshot and interaction validation based on Playwright or Selenium
+26. **Multimodal Input**
+    - Image and file upload for vision-capable models
 
 ---
 
