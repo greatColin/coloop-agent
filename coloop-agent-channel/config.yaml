@@ -1,0 +1,9 @@
+wechat:
+  enabled: false
+  token: "your-ilink-token"
+  api_base: "https://ilinkai.weixin.qq.com"
+
+agent:
+  strategy: "test"
+  test:
+    delay: 1.0

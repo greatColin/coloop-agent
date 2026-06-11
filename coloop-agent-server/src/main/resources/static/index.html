@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>coloop-agent Web</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A4%96%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link id="theme-link" rel="stylesheet" href="themes/claude.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css" id="hljs-theme-link">
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+    <style>
+        /* Command Suggestions Overlay */
+        .command-suggestions {
+            position: absolute;
+            bottom: 100%;
+            left: 20px;
+            right: 20px;
+            max-height: 220px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #ddd6fe;
+            border-radius: 12px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 6px;
+            display: none;
+            z-index: 100;
+        }
+        .command-suggestions.active {
+            display: block;
+        }
+        .command-suggestion-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .command-suggestion-item:last-child {
+            border-bottom: none;
+        }
+        .command-suggestion-item:hover,
+        .command-suggestion-item.selected {
+            background: #f5f3ff;
+        }
+        .command-suggestion-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #4a306d;
+            font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+        }
+        .command-suggestion-desc {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        /* App layout override for sidebar */
+        .app {
+            flex-direction: row !important;
+            max-width: none !important;
+            margin: 0 !important;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Agent Sidebar - colors via CSS vars so themes can override */
+        .agent-sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: var(--sidebar-bg, #f8f7fa);
+            border-right: 1px solid var(--sidebar-border, #e5e2ec);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .agent-sidebar.collapsed {
+            width: 52px;
+            min-width: 52px;
+        }
+        .agent-sidebar-header {
+            padding: 14px;
+            border-bottom: 1px solid var(--sidebar-border, #e5e2ec);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            height: 52px;
+        }
+        .agent-sidebar.collapsed .agent-sidebar-header {
+            padding: 14px 0;
+            justify-content: center;
+        }
+        .agent-sidebar-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--sidebar-title-color, #4a306d);
+            font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity 0.15s ease, width 0.15s ease;
+        }
+        .agent-sidebar.collapsed .agent-sidebar-title {
+            opacity: 0;
+            width: 0;
+        }
+        .agent-sidebar-toggle {
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--sidebar-toggle-color, #8b7aa0);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .agent-sidebar-toggle:hover {
+            background: var(--sidebar-toggle-hover-bg, #e5e2ec);
+            color: var(--sidebar-toggle-hover-color, #4a306d);
+        }
+        .agent-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .agent-sidebar.collapsed .agent-list {
+            padding: 8px 6px;
+            align-items: center;
+        }
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            line-height: 1.4;
+            color: var(--sidebar-item-color, #555);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            position: relative;
+            background: transparent;
+        }
+        .agent-item:hover {
+            background: var(--sidebar-item-hover-bg, #ede9f7);
+            color: var(--sidebar-item-hover-color, #4a306d);
+        }
+        .agent-item.active {
+            background: var(--sidebar-item-active-bg, #f0ebfa);
+            color: var(--sidebar-item-active-color, #4a306d);
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 0 var(--sidebar-item-active-border, #8b5cf6);
+        }
+        .agent-sidebar.collapsed .agent-item {
+            padding: 6px;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+        }
+        .agent-sidebar.collapsed .agent-item.active {
+            background: var(--sidebar-collapsed-active-bg, #8b5cf6);
+            color: var(--sidebar-collapsed-active-color, #fff);
+            box-shadow: none;
+        }
+        .agent-item.removing {
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .agent-icon {
+            font-size: 15px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--sidebar-icon-bg, #e8e5f0);
+            transition: all 0.15s ease;
+        }
+        .agent-item.active .agent-icon {
+            background: var(--sidebar-icon-active-bg, #ddd6fe);
+        }
+        .agent-sidebar.collapsed .agent-icon {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            font-size: 16px;
+        }
+        .agent-sidebar.collapsed .agent-item.active .agent-icon {
+            background: transparent;
+        }
+        .agent-name {
+            flex: 1;
+            word-break: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: opacity 0.15s ease;
+        }
+        .agent-sidebar.collapsed .agent-name {
+            display: none;
+        }
+        .agent-list::-webkit-scrollbar {
+            width: 3px;
+        }
+        .agent-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .agent-list::-webkit-scrollbar-thumb {
+            background: var(--sidebar-scrollbar, #d1cbe6);
+            border-radius: 2px;
+        }
+        .sidebar-sections {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-section-header {
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--sidebar-section-header-color, #8b7aa0);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            user-select: none;
+            transition: background 0.15s ease;
+        }
+        .sidebar-section-header:hover {
+            background: var(--sidebar-section-header-hover-bg, #ede9f7);
+        }
+        .section-toggle {
+            font-size: 10px;
+            transition: transform 0.2s ease;
+        }
+        .sidebar-section.expanded .section-toggle {
+            transform: rotate(0deg);
+        }
+        .sidebar-section:not(.expanded) .section-toggle {
+            transform: rotate(-90deg);
+        }
+        .sidebar-section-body {
+            display: flex;
+            flex-direction: column;
+            padding: 0 8px 8px;
+            gap: 2px;
+        }
+        .sidebar-section-body.collapsed {
+            display: none;
+        }
+        /* history-item styles defined below */
+
+        /* === Task Sidebar === */
+        .task-empty {
+            padding: 12px;
+            font-size: 12px;
+            color: var(--sidebar-section-header-color, #8b7aa0);
+            text-align: center;
+        }
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            cursor: default;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .task-item:hover {
+            background: var(--sidebar-item-hover-bg, #ede9f7);
+        }
+        .task-status-icon {
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+        .task-subject {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .task-in-progress {
+            color: var(--sidebar-item-active-color, #4a306d);
+            font-weight: 500;
+            background: var(--sidebar-item-active-bg, #f0ebfa);
+        }
+        .task-pending {
+            color: var(--sidebar-item-color, #555);
+        }
+        .task-completed {
+            color: var(--sidebar-section-header-color, #8b7aa0);
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        .task-in_progress {
+            color: var(--sidebar-item-active-color, #4a306d);
+            font-weight: 500;
+            background: var(--sidebar-item-active-bg, #f0ebfa);
+        }
+        .history-empty {
+            padding: 12px;
+            font-size: 12px;
+            color: var(--sidebar-section-header-color, #8b7aa0);
+            text-align: center;
+        }
+        .history-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--sidebar-history-item-color, #555);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .history-item:hover {
+            background: var(--sidebar-history-item-hover-bg, #ede9f7);
+            color: var(--sidebar-history-item-hover-color, #4a306d);
+        }
+        .history-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-time {
+            font-size: 10px;
+            color: var(--sidebar-section-header-color, #8b7aa0);
+        }
+        .task-count-badge {
+            font-size: 10px;
+            font-weight: 600;
+            color: #fff;
+            background: var(--sidebar-item-active-border, #8b5cf6);
+            padding: 1px 6px;
+            border-radius: 8px;
+            margin-left: auto;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        /* === Mode Switcher === */
+        .mode-switcher {
+            display: flex;
+            gap: 2px;
+            background: var(--sidebar-bg, #f0f0f0);
+            border-radius: 6px;
+            padding: 2px;
+        }
+        .mode-btn {
+            padding: 4px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--sidebar-item-color, #555);
+        }
+        .mode-btn.active {
+            background: var(--group-bg, #fff);
+            color: var(--sidebar-item-active-color, #111);
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* === Combined Mode === */
+        .single-mode {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+        .combined-mode {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+        .combined-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Topology Panel */
+        .topology-panel {
+            width: 40%;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--sidebar-border, #e5e7eb);
+            background: var(--topo-bg, #f5f5f5);
+            transition: width 0.3s ease, min-width 0.3s ease;
+            position: relative;
+        }
+        .topology-panel.collapsed {
+            width: 40px;
+            min-width: 40px;
+        }
+        .topology-panel.collapsed .topology-header select,
+        .topology-panel.collapsed .topology-canvas {
+            display: none;
+        }
+        .topology-header {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--sidebar-border, #e5e7eb);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--sidebar-bg, #f8f7fa);
+            flex-shrink: 0;
+        }
+        .topology-header select {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--sidebar-border, #e5e7eb);
+            font-size: 13px;
+            background: var(--group-bg, #fff);
+        }
+        .topology-toggle {
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            border-radius: 4px;
+            user-select: none;
+            color: var(--sidebar-toggle-color, #666);
+        }
+        .topology-toggle:hover {
+            background: var(--sidebar-toggle-hover-bg, #e5e7eb);
+        }
+        .topology-canvas {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        .topology-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Group Chat Area */
+        .group-chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background: var(--group-bg, #fff);
+            position: relative;
+        }
+        .group-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-right: 196px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .group-chat-members {
+            width: 180px;
+            border-left: 1px solid var(--sidebar-border, #e5e7eb);
+            background: var(--group-sidebar-bg, #f8f7fa);
+            padding: 12px;
+            overflow-y: auto;
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 56px;
+            z-index: 2;
+        }
+        .group-members-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--sidebar-section-header-color, #666);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .group-member {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 13px;
+            color: var(--sidebar-item-color, #333);
+        }
+        .group-member-avatar {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .group-member-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .group-member-role {
+            font-size: 10px;
+            color: var(--sidebar-section-header-color, #999);
+            background: var(--sidebar-icon-bg, #eee);
+            padding: 1px 5px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .group-member-status {
+            font-size: 11px;
+            color: var(--sidebar-section-header-color, #999);
+            flex-shrink: 0;
+        }
+
+        /* Group Messages */
+        .group-msg {
+            display: flex;
+            gap: 10px;
+            max-width: 80%;
+            animation: msg-in 0.2s ease;
+        }
+        @keyframes msg-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .group-msg-self {
+            align-self: flex-end;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-left: auto;
+        }
+        .group-msg-other {
+            align-self: flex-start;
+        }
+        .group-msg-avatar {
+            font-size: 28px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            image-rendering: pixelated;
+        }
+        .group-msg-name {
+            font-size: 12px;
+            color: var(--sidebar-section-header-color, #666);
+            margin-bottom: 2px;
+        }
+        .group-msg-label {
+            font-size: 11px;
+            color: var(--sidebar-section-header-color, #999);
+            margin-bottom: 2px;
+        }
+        .group-msg-bubble {
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        .group-msg-self .group-msg-bubble {
+            background: var(--group-bubble-self-bg, #2563eb);
+            color: var(--group-bubble-self-color, #fff);
+            border-radius: 12px 12px 4px 12px;
+        }
+        .group-msg-other .group-msg-bubble {
+            background: var(--group-bubble-other-bg, #f3f4f6);
+            color: var(--group-bubble-other-color, #111);
+            border-radius: 12px 12px 12px 4px;
+        }
+        .group-system-msg {
+            align-self: center;
+            font-size: 12px;
+            color: var(--group-system-color, #9ca3af);
+            padding: 4px 12px;
+        }
+
+        /* Group Input */
+        .group-chat-input {
+            display: flex;
+            gap: 8px;
+            padding: 10px 16px;
+            border-top: 1px solid var(--sidebar-border, #e5e7eb);
+            background: var(--sidebar-bg, #f8f7fa);
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .group-chat-input label {
+            font-size: 13px;
+            color: var(--sidebar-item-color, #555);
+            white-space: nowrap;
+        }
+        .group-chat-input select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--sidebar-border, #e5e7eb);
+            font-size: 13px;
+            background: var(--group-bg, #fff);
+            color: var(--sidebar-item-color, #333);
+        }
+        .group-chat-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--sidebar-border, #e5e7eb);
+            font-size: 14px;
+            outline: none;
+            background: var(--group-bg, #fff);
+            color: var(--sidebar-title-color, #111);
+        }
+        .group-chat-input input:focus {
+            border-color: var(--sidebar-item-active-border, #2563eb);
+        }
+        .group-chat-input input::placeholder {
+            color: var(--sidebar-section-header-color, #999);
+        }
+        .group-chat-input button {
+            padding: 8px 18px;
+            background: var(--sidebar-item-active-border, #2563eb);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .group-chat-input button:hover {
+            opacity: 0.9;
+        }
+
+        /* Topology Agent Node */
+        .agent-node {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            transition: left 0.4s ease, top 0.4s ease;
+            z-index: 2;
+            cursor: default;
+        }
+        .agent-node-avatar {
+            width: 64px;
+            height: 64px;
+            font-size: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--sidebar-icon-bg, #e5e7eb);
+            border-radius: 12px;
+            border: 2px solid var(--topo-node-border, #e5e7eb);
+            image-rendering: pixelated;
+            transition: all 0.3s ease;
+        }
+        .agent-node-main .agent-node-avatar {
+            border-color: var(--sidebar-item-active-border, #2563eb);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+        .agent-node-working .agent-node-avatar {
+            animation: node-float 2s ease-in-out infinite;
+        }
+        @keyframes node-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        .agent-node-idle .agent-node-avatar {
+            opacity: 0.6;
+            filter: grayscale(0.5);
+        }
+        .agent-node-status {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            background: var(--sidebar-bg, #f0f0f0);
+            color: var(--sidebar-item-active-border, #2563eb);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .agent-node-bubble {
+            max-width: 200px;
+            padding: 8px 12px;
+            background: var(--topo-bubble-bg, #fff);
+            border: 1px solid var(--topo-node-border, #e5e7eb);
+            border-radius: 10px;
+            font-size: 12px;
+            line-height: 1.4;
+            word-break: break-word;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            color: var(--sidebar-item-color, #333);
+        }
+        .agent-node-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: var(--topo-node-border, #e5e7eb);
+        }
+        .agent-node-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-bottom-color: var(--topo-bubble-bg, #fff);
+            margin-bottom: -1px;
+        }
+        .agent-node-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .agent-node:hover .agent-node-actions {
+            opacity: 1;
+        }
+        .agent-node-actions button {
+            font-size: 11px;
+            padding: 3px 8px;
+            border: 1px solid var(--sidebar-border, #e5e7eb);
+            border-radius: 4px;
+            background: var(--group-bg, #fff);
+            cursor: pointer;
+            color: var(--sidebar-item-color, #555);
+        }
+        .agent-node-actions button:hover {
+            background: var(--sidebar-item-hover-bg, #e5e7eb);
+        }
+
+        /* Topology Line */
+        .topo-line {
+            fill: none;
+            stroke: var(--topo-line, #ccc);
+            stroke-width: 2;
+        }
+        .topo-line.active {
+            stroke: var(--topo-line-active, #2563eb);
+            stroke-dasharray: 6 4;
+            animation: line-flow 1s linear infinite;
+        }
+        @keyframes line-flow {
+            to { stroke-dashoffset: -20; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="agent-sidebar" id="agent-sidebar">
+            <div class="agent-sidebar-header">
+                <span class="agent-sidebar-title">coloop</span>
+                <span class="agent-sidebar-toggle" id="agent-sidebar-toggle" title="收起/展开">◀</span>
+            </div>
+            <div class="sidebar-sections">
+                <div class="sidebar-section expanded" data-section="tasks">
+                    <div class="sidebar-section-header">
+                        <span class="section-toggle">▼</span>
+                        <span class="section-title">任务</span>
+                        <span class="task-count-badge" id="task-count-badge"></span>
+                    </div>
+                    <div class="sidebar-section-body" id="task-list-container">
+                        <div class="task-empty">暂无任务</div>
+                    </div>
+                </div>
+                <div class="sidebar-section expanded" data-section="current">
+                    <div class="sidebar-section-header">
+                        <span class="section-toggle">▼</span>
+                        <span class="section-title">当前会话</span>
+                    </div>
+                    <div class="sidebar-section-body" id="current-session-list">
+                        <div class="agent-item active" data-agent="main">
+                            <span class="agent-icon">⭐</span>
+                            <span class="agent-name">main</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-section" data-section="history">
+                    <div class="sidebar-section-header" id="history-section-header">
+                        <span class="section-toggle">▶</span>
+                        <span class="section-title">历史记录</span>
+                    </div>
+                    <div class="sidebar-section-body collapsed" id="history-list">
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <div class="main-content">
+            <!-- 单聊模式 -->
+            <div class="single-mode" id="single-mode">
+                <header class="header">
+                    <h1 id="session-title">coloop-agent Web</h1>
+                    <div class="header-right">
+                        <div class="mode-switcher">
+                            <button class="mode-btn active" data-mode="single">单聊</button>
+                            <button class="mode-btn" data-mode="combined">复合</button>
+                        </div>
+                        <div class="theme-switcher">
+                            <label for="theme-select">主题</label>
+                            <select id="theme-select">
+                                <option value="claude">Claude 优雅紫</option>
+                                <option value="chatgpt">ChatGPT 极简</option>
+                                <option value="cursor">Cursor 极客暗</option>
+                                <option value="discord">Discord 社交暗</option>
+                                <option value="linear">Linear 专业白</option>
+                                <option value="telegram">Telegram 明快</option>
+                                <option value="terminal">终端复古</option>
+                                <option value="glass">玻璃华丽</option>
+                            </select>
+                            <a href="theme-gallery.html">浏览全部</a>
+                        </div>
+                        <span id="connection-status" class="status connecting">连接中...</span>
+                    </div>
+                </header>
+                <div class="context-bar" id="context-bar">
+                    <div class="context-info">
+                        <span class="context-label">上下文占用</span>
+                        <span class="context-value" id="context-value">0 / 100K (0%)</span>
+                    </div>
+                    <div class="context-progress-bg">
+                        <div class="context-progress-fill" id="context-progress-fill" style="width:0%"></div>
+                    </div>
+                </div>
+                <main class="chat-container" id="chat-container">
+                    <!-- 消息将动态插入这里 -->
+                </main>
+                <footer class="input-area" style="position:relative;">
+                    <div id="command-suggestions" class="command-suggestions"></div>
+                    <label style="font-size:12px;color:var(--sidebar-item-color,#666);align-self:center;white-space:nowrap;">发给:</label>
+                    <select id="single-target-select" style="padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;font-size:13px;background:#fff;align-self:center;">
+                        <option>main</option>
+                    </select>
+                    <textarea id="message-input" placeholder="输入消息... (Shift+Enter 换行, Enter 发送)" rows="2"></textarea>
+                    <button id="send-btn" disabled>发送</button>
+                </footer>
+            </div>
+
+            <!-- 复合模式 -->
+            <div class="combined-mode" id="combined-mode" style="display:none">
+                <header class="header">
+                    <h1 id="session-title-combined">coloop-agent Web</h1>
+                    <div class="header-right">
+                        <div class="mode-switcher">
+                            <button class="mode-btn" data-mode="single">单聊</button>
+                            <button class="mode-btn active" data-mode="combined">复合</button>
+                        </div>
+                        <div class="theme-switcher">
+                            <label for="theme-select-combined">主题</label>
+                            <select id="theme-select-combined">
+                                <option value="claude">Claude 优雅紫</option>
+                                <option value="chatgpt">ChatGPT 极简</option>
+                                <option value="cursor">Cursor 极客暗</option>
+                                <option value="discord">Discord 社交暗</option>
+                                <option value="linear">Linear 专业白</option>
+                                <option value="telegram">Telegram 明快</option>
+                                <option value="terminal">终端复古</option>
+                                <option value="glass">玻璃华丽</option>
+                            </select>
+                            <a href="theme-gallery.html">浏览全部</a>
+                        </div>
+                        <span id="connection-status-combined" class="status connecting">连接中...</span>
+                    </div>
+                </header>
+                <div class="combined-body">
+                    <div class="topology-panel" id="topology-panel">
+                        <div class="topology-header">
+                            <select id="topology-layout-select">
+                                <option value="flow">业务流程</option>
+                                <option value="roundtable">圆桌</option>
+                                <option value="radial">放射</option>
+                            </select>
+                            <span class="topology-toggle" id="topology-toggle">&#9664;</span>
+                        </div>
+                        <div class="topology-canvas" id="topology-canvas">
+                            <svg id="topology-svg" class="topology-svg"></svg>
+                            <div id="topology-nodes"></div>
+                        </div>
+                    </div>
+                    <div class="group-chat-area">
+                        <div class="group-chat-messages" id="group-chat-messages"></div>
+                        <div class="group-chat-members" id="group-chat-members"></div>
+                        <div class="group-chat-input">
+                            <label>发给:</label>
+                            <select id="group-target-select"><option>main</option></select>
+                            <input type="text" id="group-message-input" placeholder="输入消息...">
+                            <button id="group-send-btn">发送</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="chat.js?v=2"></script>
+    <script src="graph-state.js?v=1"></script>
+    <script src="group-chat.js?v=1"></script>
+    <script src="topology.js?v=1"></script>
+    <script>
+        (function() {
+            var themeLink = document.getElementById('theme-link');
+            var hljsThemeLink = document.getElementById('hljs-theme-link');
+            var themeSelect = document.getElementById('theme-select');
+            var themeSelectCombined = document.getElementById('theme-select-combined');
+            var STORAGE_KEY = 'coloop-agent-theme';
+            var DEFAULT_THEME = 'claude';
+
+            var DARK_THEMES = ['cursor', 'discord', 'terminal', 'glass'];
+
+            function isDarkTheme(themeName) {
+                return DARK_THEMES.indexOf(themeName) !== -1;
+            }
+
+            function loadTheme(themeName) {
+                themeName = themeName || localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
+                themeLink.href = 'themes/' + themeName + '.css';
+                if (themeSelect) themeSelect.value = themeName;
+                if (themeSelectCombined) themeSelectCombined.value = themeName;
+                // Sync highlight.js theme
+                if (hljsThemeLink) {
+                    var hljsTheme = isDarkTheme(themeName) ? 'github-dark' : 'github';
+                    hljsThemeLink.href = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/' + hljsTheme + '.min.css';
+                }
+            }
+
+            if (themeSelect) {
+                themeSelect.addEventListener('change', function() {
+                    loadTheme(themeSelect.value);
+                    localStorage.setItem(STORAGE_KEY, themeSelect.value);
+                });
+            }
+            if (themeSelectCombined) {
+                themeSelectCombined.addEventListener('change', function() {
+                    loadTheme(themeSelectCombined.value);
+                    localStorage.setItem(STORAGE_KEY, themeSelectCombined.value);
+                });
+            }
+
+            // Load saved theme on page load
+            loadTheme();
+        })();
+    </script>
+</body>
+</html>
