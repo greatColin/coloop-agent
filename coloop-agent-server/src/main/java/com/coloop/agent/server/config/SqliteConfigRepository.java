@@ -62,7 +62,8 @@ public class SqliteConfigRepository implements ConfigRepository {
             AppConfig seed = AppConfig.fromSetting(SEED_RESOURCE);
             save(seed);
         } catch (IOException e) {
-            System.err.println("[SqliteConfigRepository] 无法从配置文件导入引导配置: " + e.getMessage());
+            System.err.println("[SqliteConfigRepository] 配置文件不存在，使用内置默认配置: " + e.getMessage());
+            save(AppConfig.defaults());
         }
     }
 

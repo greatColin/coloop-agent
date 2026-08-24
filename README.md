@@ -169,47 +169,17 @@ Intercepts user input before the LLM call. Drives the `/`-command shortcut, plan
 - **OpenAICompatibleProvider**: Supports any OpenAI-compatible API (e.g. OpenRouter, Minimax, GLM, self-hosted vLLM) with full SSE streaming.
 
 ### 8. Configuration Center
-`AppConfig` loads from `coloop-agent-core/src/main/resources/coloop-agent-setting.json` (with `${VAR}` env-var interpolation) and supports **JSON line and block comments** (`//` and `/* */`). Layout:
 
-```jsonc
-{
-  // Global default model — used when a subagent does not specify a model
-  "defaultModel": "minimax",
-  "maxIterations": 50,
-  "execTimeoutSeconds": 30,
+All configuration is stored in a local SQLite database, with a visual web UI. After startup, click the **"Settings"** button in the lower-left corner to configure models, MCP servers, voice input, and more — changes are persisted automatically.
 
-  "models": {
-    "minimax": {
-      "description": "Main model — strong reasoning, good for complex tasks",
-      "apiKey": "${COLIN_CODE_MINIMAX_API_KEY}",
-      "apiBase": "https://api.minimaxi.com/v1",
-      "model": "MiniMax-M2.7",
-      "maxContextSize": "200k"
-    },
-    "glm-4-free": {
-      "description": "Free lightweight model — good for simple tasks",
-      "apiKey": "${COLIN_CODE_GLM_API_KEY}",
-      "apiBase": "https://open.bigmodel.cn/api/paas/v4",
-      "model": "GLM-4.7-Flash",
-      "maxContextSize": "100k"
-    }
-  },
+Configuration structure:
 
-  "mcpServers": {
-    "MiniMax": { "command": "uvx", "args": ["minimax-coding-plan-mcp"], "env": { ... } }
-  },
+- **Global**: default model, max iterations, exec timeout
+- **Models**: dynamic add/remove, each with key, description, model name, API Base, API Key, context size, Max Tokens, Temperature
+- **MCP Servers**: dynamic add/remove, each with command, args, env vars
+- **Voice**: transcription strategy (with per-strategy sub-fields), correction strategy, language, recognition mode, streaming correction toggles, etc.
 
-  "voice": {
-    "transcription": { "strategy": "local_whisper", "strategies": { ... } },
-    "correction":    { "strategy": "llm",           "strategies": { ... } },
-    "language": "zh",
-    "recognitionMode": "realtime",
-    "coloopServer": { "wsUrl": "ws://localhost:8080/ws/agent" }
-  }
-}
-```
-
-`maxContextSize` accepts unit suffixes (`100k`, `200k`, `1m`) or raw numbers.
+The "Reference" tab in the settings panel shows the complete configuration schema as a fill-in reference.
 
 ---
 

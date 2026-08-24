@@ -197,11 +197,66 @@
     }
 
     function loadSeedContent() {
-        fetch('/api/config/default').then(function(r) { return r.json(); }).then(function(data) {
-            seedContent = data.content || '';
-            var el = document.getElementById('seed-content');
-            if (el) el.textContent = seedContent;
-        }).catch(function() {});
+        var example = {
+            defaultModel: "minimax",
+            maxIterations: 50,
+            execTimeoutSeconds: 30,
+            models: {
+                minimax: {
+                    description: "主模型，能力强，适合复杂任务",
+                    apiKey: "your-api-key-here",
+                    apiBase: "https://api.minimaxi.com/v1",
+                    model: "MiniMax-M2.7",
+                    maxContextSize: "200k",
+                    maxTokens: 2048,
+                    temperature: 0.7
+                },
+                "glm-4-free": {
+                    description: "免费轻量模型，适合简单任务",
+                    apiKey: "your-api-key-here",
+                    apiBase: "https://open.bigmodel.cn/api/paas/v4",
+                    model: "GLM-4.7-Flash",
+                    maxContextSize: "100k"
+                }
+            },
+            mcpServers: {
+                MiniMax: {
+                    description: "MiniMax MCP",
+                    command: "uvx",
+                    args: ["minimax-coding-plan-mcp"],
+                    env: {
+                        MINIMAX_API_KEY: "${models.minimax.apiKey}",
+                        MINIMAX_MCP_BASE_PATH: "/minimaxBase",
+                        MINIMAX_API_HOST: "https://api.minimaxi.com"
+                    }
+                }
+            },
+            voice: {
+                transcription: {
+                    strategy: "local_whisper",
+                    strategies: {
+                        local_whisper: { model: "base", device: "cpu", computeType: "int8", modelDir: "./models" },
+                        http_api: { apiUrl: "", apiKey: "", model: "" },
+                        websocket: { wsUrl: "", apiKey: "" }
+                    }
+                },
+                correction: {
+                    strategy: "llm",
+                    strategies: {
+                        llm: { model: "minimax" },
+                        none: {}
+                    }
+                },
+                language: "zh",
+                enableStreamingCorrection: true,
+                enablePostCorrection: true,
+                recognitionMode: "realtime",
+                coloopServer: { wsUrl: "ws://localhost:8080/ws/agent" }
+            }
+        };
+        seedContent = JSON.stringify(example, null, 2);
+        var el = document.getElementById('seed-content');
+        if (el) el.textContent = seedContent;
     }
 
     function populateForm(cfg) {

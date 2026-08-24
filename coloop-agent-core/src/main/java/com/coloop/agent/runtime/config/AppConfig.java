@@ -208,7 +208,8 @@ public class AppConfig {
     public static AppConfig fromSetting(String resourceName) throws IOException {
         InputStream is = AppConfig.class.getClassLoader().getResourceAsStream(resourceName);
         if (is == null) {
-            throw new IOException("Config file not found: " + resourceName);
+            System.err.println("[AppConfig] 配置文件不存在，使用内置默认配置: " + resourceName);
+            return defaults();
         }
 
         JsonNode root = MAPPER.readTree(is);
@@ -369,5 +370,77 @@ public class AppConfig {
             }
         }
         return value;
+    }
+
+    /**
+     * 返回内置默认配置，用于无配置文件时的引导初始化。
+     */
+    public static AppConfig defaults() {
+        String model = System.getenv("COLIN_CODE_OPENAI_MODEL");
+        if (model == null) model = System.getenv("OPENAI_MODEL");
+        String apiKey = System.getenv("COLIN_CODE_OPENAI_API_KEY");
+        if (apiKey == null) apiKey = System.getenv("OPENAI_API_KEY");
+        String apiBase = System.getenv("COLIN_CODE_OPENAI_API_BASE");
+        if (apiBase == null) apiBase = System.getenv("OPENAI_API_BASE");
+
+        AppConfig config = new AppConfig();
+        config.defaultModel = "minimax";
+        config.maxIterations = 50;
+        config.execTimeoutSeconds = 30;
+
+        ModelConfig minimax = new ModelConfig();
+        minimax.setModel(model != null ? model : "MiniMax-M2.7");
+        minimax.setApiBase(apiBase != null ? apiBase : "https://api.minimaxi.com/v1");
+        minimax.setApiKey(apiKey != null ? apiKey : "");
+        minimax.setDescription("主模型，能力强，适合复杂任务");
+        minimax.setMaxContextSize("200k");
+        config.models.put("minimax", minimax);
+
+        ModelConfig glm4free = new ModelConfig();
+        glm4free.setModel("GLM-4.7-Flash");
+        glm4free.setApiBase("https://open.bigmodel.cn/api/paas/v4");
+        glm4free.setApiKey("");
+        glm4free.setDescription("免费轻量模型，适合简单任务和探索性查询");
+        glm4free.setMaxContextSize("100k");
+        config.models.put("glm-4-free", glm4free);
+
+        McpServerConfig mcp = new McpServerConfig();
+        mcp.setCommand("uvx");
+        mcp.setArgs(List.of("minimax-coding-plan-mcp"));
+        mcp.setEnv(Map.of(
+                "MINIMAX_API_KEY", "",
+                "MINIMAX_MCP_BASE_PATH", "/minimaxBase",
+                "MINIMAX_API_HOST", "https://api.minimaxi.com"
+        ));
+        config.mcpServers.put("MiniMax", mcp);
+
+        Map<String, Object> voice = new HashMap<>();
+        voice.put("language", "zh");
+        voice.put("recognitionMode", "realtime");
+        voice.put("enableStreamingCorrection", true);
+        voice.put("enablePostCorrection", true);
+        voice.put("coloopServer", Map.of("wsUrl", "ws://localhost:8080/ws/agent"));
+
+        Map<String, Object> transcription = new HashMap<>();
+        transcription.put("strategy", "local_whisper");
+        Map<String, Object> txStrategies = new HashMap<>();
+        txStrategies.put("local_whisper", Map.of(
+                "model", "base", "device", "cpu", "computeType", "int8", "modelDir", "./models"
+        ));
+        txStrategies.put("http_api", Map.of("apiUrl", "", "apiKey", "", "model", ""));
+        txStrategies.put("websocket", Map.of("wsUrl", "", "apiKey", ""));
+        transcription.put("strategies", txStrategies);
+        voice.put("transcription", transcription);
+
+        Map<String, Object> correction = new HashMap<>();
+        correction.put("strategy", "llm");
+        Map<String, Object> corrStrategies = new HashMap<>();
+        corrStrategies.put("llm", Map.of("model", "minimax"));
+        corrStrategies.put("none", Map.of());
+        correction.put("strategies", corrStrategies);
+        voice.put("correction", correction);
+
+        config.voice = voice;
+        return config;
     }
 }

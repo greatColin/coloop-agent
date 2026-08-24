@@ -169,47 +169,17 @@ new CapabilityLoader()
 - **OpenAICompatibleProvider**：支持任意 OpenAI 兼容 API（如 OpenRouter、Minimax、GLM、自托管 vLLM），完整支持 SSE 流式输出。
 
 ### 8. 配置中心
-`AppConfig` 从 `coloop-agent-core/src/main/resources/coloop-agent-setting.json` 加载（支持 `${VAR}` 环境变量插值），并支持 **JSON 行注释与块注释**（`//` 与 `/* */`）。结构：
 
-```jsonc
-{
-  // 全局默认模型 — 当 subagent 未指定 model 时使用
-  "defaultModel": "minimax",
-  "maxIterations": 50,
-  "execTimeoutSeconds": 30,
+配置统一存储在本地 SQLite 数据库，Web UI 提供可视化配置界面。启动后点击左下角**「设置」**按钮即可配置模型、MCP、语音等所有参数，配置自动持久化。
 
-  "models": {
-    "minimax": {
-      "description": "主模型 — 推理能力强，适合复杂任务",
-      "apiKey": "${COLIN_CODE_MINIMAX_API_KEY}",
-      "apiBase": "https://api.minimaxi.com/v1",
-      "model": "MiniMax-M2.7",
-      "maxContextSize": "200k"
-    },
-    "glm-4-free": {
-      "description": "免费轻量模型 — 适合简单任务",
-      "apiKey": "${COLIN_CODE_GLM_API_KEY}",
-      "apiBase": "https://open.bigmodel.cn/api/paas/v4",
-      "model": "GLM-4.7-Flash",
-      "maxContextSize": "100k"
-    }
-  },
+配置结构：
 
-  "mcpServers": {
-    "MiniMax": { "command": "uvx", "args": ["minimax-coding-plan-mcp"], "env": { ... } }
-  },
+- **全局**：默认模型、最大迭代次数、命令执行超时
+- **模型列表**：可动态增删，每个模型包含 key、描述、模型名、API Base、API Key、上下文大小、Max Tokens、Temperature
+- **MCP 服务器列表**：可动态增删，每个服务器包含 command、args、环境变量
+- **语音配置**：转写策略（含各策略子参数）、纠正策略、语言、识别模式、流式纠正开关等
 
-  "voice": {
-    "transcription": { "strategy": "local_whisper", "strategies": { ... } },
-    "correction":    { "strategy": "llm",           "strategies": { ... } },
-    "language": "zh",
-    "recognitionMode": "realtime",
-    "coloopServer": { "wsUrl": "ws://localhost:8080/ws/agent" }
-  }
-}
-```
-
-`maxContextSize` 支持单位后缀（`100k`、`200k`、`1m`），也可直接写数字。
+参考备注 tab 中有完整的配置结构示例，可作为填写参考。
 
 ---
 
