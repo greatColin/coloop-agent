@@ -777,6 +777,25 @@
         @keyframes line-flow {
             to { stroke-dashoffset: -20; }
         }
+        .sidebar-footer {
+            padding: 8px 12px;
+            border-top: 1px solid var(--sidebar-border, #e5e2ec);
+            display: flex;
+            justify-content: flex-end;
+        }
+        .settings-btn {
+            background: none;
+            border: 1px solid var(--sidebar-border, #e5e2ec);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 10px;
+            color: var(--sidebar-item-color, #555);
+        }
+        .settings-btn:hover {
+            background: var(--sidebar-item-hover-bg, #ede9f7);
+            color: var(--sidebar-item-hover-color, #4a306d);
+        }
     </style>
 </head>
 <body>
@@ -817,6 +836,9 @@
                     <div class="sidebar-section-body collapsed" id="history-list">
                     </div>
                 </div>
+            </div>
+            <div class="sidebar-footer">
+                <button id="settings-btn" class="settings-btn" title="设置">⚙ 设置</button>
             </div>
         </aside>
         <div class="main-content">
@@ -929,6 +951,7 @@
     <script src="graph-state.js?v=1"></script>
     <script src="group-chat.js?v=1"></script>
     <script src="topology.js?v=1"></script>
+    <script src="settings.js?v=1"></script>
     <script>
         (function() {
             var themeLink = document.getElementById('theme-link');

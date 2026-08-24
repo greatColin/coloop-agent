@@ -24,6 +24,7 @@ import com.coloop.agent.core.provider.ToolCallRequest;
 import com.coloop.agent.runtime.CapabilityLoader;
 import com.coloop.agent.runtime.StandardCapability;
 import com.coloop.agent.runtime.config.AppConfig;
+import com.coloop.agent.runtime.config.ConfigRepository;
 import com.coloop.agent.core.command.Command;
 import com.coloop.agent.capability.message.StandardMessageBuilder;
 import com.coloop.agent.capability.subagent.SubagentEventListener;
@@ -41,6 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,9 +59,11 @@ public class AgentService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ConcurrentHashMap<String, SessionContext> sessions = new ConcurrentHashMap<>();
     private final ConversationHistoryStore historyStore;
+    private final ConfigRepository configRepository;
 
-    public AgentService() {
+    public AgentService(ConfigRepository configRepository) {
         this.historyStore = new FileSystemHistoryStore(Paths.get("."));
+        this.configRepository = configRepository;
     }
 
     private static class SessionContext {
@@ -101,7 +105,7 @@ public class AgentService {
                 AgentLoop agentLoop;
                 synchronized (ctx) {
                     if (ctx.agentLoop == null) {
-                        AppConfig config = AppConfig.fromSetting("coloop-agent-setting.json");
+                        AppConfig config = configRepository.load().orElseGet(this::loadSeedConfig);
                         LLMProvider provider = new OpenAICompatibleProvider(config.getDefaultModelConfig());
                         WebSocketLoggingHook hook = new WebSocketLoggingHook(session);
                         HistoryRecordingHook historyHook = new HistoryRecordingHook(historyStore, ctx.sessionId, "main", title -> {
@@ -483,6 +487,14 @@ public class AgentService {
                 return WebSocketMessage.contextUsage(t, l, p).withAgent(hm.agent);
             default:
                 return null;
+        }
+    }
+
+    private AppConfig loadSeedConfig() {
+        try {
+            return AppConfig.fromSetting("coloop-agent-setting.json");
+        } catch (IOException e) {
+            return new AppConfig();
         }
     }
 }

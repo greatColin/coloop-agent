@@ -1,6 +1,7 @@
 package com.coloop.agent.runtime.config;
 
 import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -34,6 +35,9 @@ public class AppConfig {
 
     // MCP 服务器配置
     private Map<String, McpServerConfig> mcpServers = new HashMap<>();
+
+    // 语音相关配置（透传保留，core 不解析）
+    private Map<String, Object> voice = new HashMap<>();
 
     // ==================== 内部类：模型配置 ====================
 
@@ -143,6 +147,9 @@ public class AppConfig {
     public Map<String, McpServerConfig> getMcpServers() { return mcpServers; }
     public void setMcpServers(Map<String, McpServerConfig> mcpServers) { this.mcpServers = mcpServers; }
 
+    public Map<String, Object> getVoice() { return voice; }
+    public void setVoice(Map<String, Object> voice) { this.voice = voice; }
+
     // ==================== 静态工厂方法 ====================
 
     /**
@@ -243,6 +250,11 @@ public class AppConfig {
         config.maxIterations = getInteger(root, "maxIterations");
         config.execTimeoutSeconds = getInteger(root, "execTimeoutSeconds");
         config.maxContextSize = getString(root, "maxContextSize", null);
+
+        // 透传保留语音配置（core 不解析，仅供持久化与外部服务使用）
+        if (root.has("voice") && root.get("voice").isObject()) {
+            config.voice = MAPPER.convertValue(root.get("voice"), new TypeReference<Map<String, Object>>() {});
+        }
 
         return config;
     }
