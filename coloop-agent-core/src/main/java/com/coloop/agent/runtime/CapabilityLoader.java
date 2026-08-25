@@ -1,5 +1,6 @@
 package com.coloop.agent.runtime;
 
+import com.coloop.agent.capability.CapabilityType;
 import com.coloop.agent.capability.mcp.McpCapability;
 import com.coloop.agent.core.agent.AgentHook;
 import com.coloop.agent.core.agent.AgentLoop;
@@ -13,7 +14,9 @@ import com.coloop.agent.runtime.config.AppConfig;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 统一加载拓展工具，链式加载组件，构造agentLoop
@@ -21,6 +24,7 @@ import java.util.List;
 public class CapabilityLoader {
 
     private final List<Tool> tools = new ArrayList<Tool>();
+    private final Map<String, String> toolCapabilityIds = new HashMap<>();
     private final List<PromptPlugin> promptPlugins = new ArrayList<PromptPlugin>();
     private final List<AgentHook> hooks = new ArrayList<AgentHook>();
     private final List<InputInterceptor> interceptors = new ArrayList<InputInterceptor>();
@@ -29,8 +33,15 @@ public class CapabilityLoader {
     private com.coloop.agent.core.context.ConversationState conversationState;
 
     public CapabilityLoader withTool(Tool tool) {
+        return withTool(tool, null);
+    }
+
+    private CapabilityLoader withTool(Tool tool, String capabilityId) {
         if (tool != null) {
             tools.add(tool);
+            if (capabilityId != null) {
+                toolCapabilityIds.put(tool.getName(), capabilityId);
+            }
         }
         return this;
     }
@@ -57,9 +68,13 @@ public class CapabilityLoader {
     }
 
     public CapabilityLoader withComposite(CompositeCapability composite) {
+        return withComposite(composite, null);
+    }
+
+    public CapabilityLoader withComposite(CompositeCapability composite, String capabilityId) {
         if (composite != null) {
             for (Tool tool : composite.getTools()) {
-                withTool(tool);
+                withTool(tool, capabilityId);
             }
             withPromptPlugin(composite.getPromptPlugin());
             withHook(composite.getHook());
@@ -83,16 +98,20 @@ public class CapabilityLoader {
     }
 
     public CapabilityLoader withCapability(StandardCapability cap, AppConfig config) {
+        CapabilityType type = cap.getType();
+        if ((type == CapabilityType.TOOL || type == CapabilityType.COMPOSITE) && !config.isToolEnabled(cap.getId())) {
+            return this;
+        }
         Object instance = cap.create(config);
         switch (cap.getType()) {
             case TOOL:
                 if (instance instanceof McpCapability) {
                     // MCP Capability returns multiple tools
                     for (Tool tool : ((McpCapability) instance).getTools()) {
-                        withTool(tool);
+                        withTool(tool, cap.getId());
                     }
                 } else if (instance instanceof Tool) {
-                    withTool((Tool) instance);
+                    withTool((Tool) instance, cap.getId());
                 }
                 break;
             case PROMPT_PLUGIN:
@@ -107,7 +126,7 @@ public class CapabilityLoader {
             case COMPOSITE:
                 if (instance instanceof CompositeCapability composite) {
                     for (Tool tool : composite.getTools()) {
-                        withTool(tool);
+                        withTool(tool, cap.getId());
                     }
                     withPromptPlugin(composite.getPromptPlugin());
                     withHook(composite.getHook());
@@ -129,7 +148,10 @@ public class CapabilityLoader {
     public @NotNull AgentLoop build(LLMProvider provider, AppConfig config) {
         ToolRegistry registry = new ToolRegistry();
         for (Tool t : tools) {
-            registry.register(t);
+            String capabilityId = toolCapabilityIds.get(t.getName());
+            if (capabilityId == null || config.isToolEnabled(capabilityId)) {
+                registry.register(t);
+            }
         }
 
         // 自动创建共享会话状态

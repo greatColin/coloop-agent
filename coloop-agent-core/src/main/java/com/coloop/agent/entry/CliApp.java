@@ -74,7 +74,7 @@ public class CliApp {
             .withInterceptor(cmdInterceptor);
 
         // 复用已有的 taskCap 实例，确保 /tasks 命令和工具共享同一 TaskService
-        loader.withComposite(taskCap);
+        loader.withComposite(taskCap, StandardCapability.TASK_MANAGEMENT.getId());
         loader.withComposite(planCap);
 
         AgentLoop agentLoop = loader.build(provider, config);

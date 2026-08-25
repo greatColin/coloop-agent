@@ -1,5 +1,7 @@
 package com.coloop.agent.server.controller;
 
+import com.coloop.agent.capability.CapabilityType;
+import com.coloop.agent.runtime.StandardCapability;
 import com.coloop.agent.runtime.config.AppConfig;
 import com.coloop.agent.server.config.SqliteConfigRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -47,7 +49,38 @@ public class ConfigController {
         Map<String, Object> body = objectMapper.convertValue(config, new TypeReference<Map<String, Object>>() {});
         body.put("fromSeed", !repository.hasStoredConfig());
         body.put("version", repository.getVersion());
+        if (config.getToolSwitches() == null || config.getToolSwitches().isEmpty()) {
+            body.put("toolSwitches", defaultToolSwitches());
+        }
         return body;
+    }
+
+    private Map<String, Boolean> defaultToolSwitches() {
+        Map<String, Boolean> switches = new HashMap<>();
+        for (StandardCapability cap : StandardCapability.values()) {
+            if (cap.getType() == CapabilityType.TOOL || cap.getType() == CapabilityType.COMPOSITE) {
+                switches.put(cap.getId(), true);
+            }
+        }
+        return switches;
+    }
+
+    /**
+     * GET /api/config/tools — 返回所有工具的 ID、名称、描述列表。
+     */
+    @GetMapping("/tools")
+    public List<Map<String, String>> getTools() {
+        List<Map<String, String>> tools = new ArrayList<>();
+        for (StandardCapability cap : StandardCapability.values()) {
+            if (cap.getType() == CapabilityType.TOOL || cap.getType() == CapabilityType.COMPOSITE) {
+                Map<String, String> tool = new HashMap<>();
+                tool.put("id", cap.getId());
+                tool.put("name", cap.getName());
+                tool.put("description", cap.getDescription());
+                tools.add(tool);
+            }
+        }
+        return tools;
     }
 
     /**

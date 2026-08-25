@@ -38,6 +38,7 @@
                         <button class="settings-tab active" data-tab="global">全局</button>\
                         <button class="settings-tab" data-tab="models">模型</button>\
                         <button class="settings-tab" data-tab="mcps">MCP</button>\
+                        <button class="settings-tab" data-tab="tools">工具</button>\
                         <button class="settings-tab" data-tab="voice">语音</button>\
                         <button class="settings-tab" data-tab="reference">参考备注</button>\
                     </div>\
@@ -53,6 +54,9 @@
                     <div class="settings-tab-content" id="tab-mcps" style="display:none">\
                         <div id="mcps-list"></div>\
                         <button type="button" id="add-mcp-btn" class="add-btn">+ 添加 MCP</button>\
+                    </div>\
+                    <div class="settings-tab-content" id="tab-tools" style="display:none">\
+                        <div id="tools-list"></div>\
                     </div>\
                     <div class="settings-tab-content" id="tab-voice" style="display:none">\
                         <div class="voice-section">\
@@ -171,7 +175,11 @@
             .save-btn{background:#4a306d;color:#fff;border:none;border-radius:6px;padding:8px 24px;font-size:14px;cursor:pointer;}\
             .save-btn:hover{background:#3a2060;}\
             .seed-pre{background:#f7f7f7;border:1px solid #e5e2ec;border-radius:6px;padding:12px;font-size:12px;overflow:auto;max-height:400px;white-space:pre-wrap;word-break:break-all;}\
-            .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 20px;border-radius:6px;font-size:14px;z-index:2000;}';
+            .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 20px;border-radius:6px;font-size:14px;z-index:2000;}\
+            .tools-list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid #e5e2ec;border-radius:8px;margin-bottom:8px;}\
+            .tools-list-item .tool-info{flex:1;}\
+            .tools-list-item .tool-name{font-size:14px;font-weight:500;color:#333;}\
+            .tools-list-item .tool-desc{font-size:12px;color:#888;margin-top:2px;}';
         document.head.appendChild(style);
     }
 
@@ -277,6 +285,7 @@
 
         renderModels(models);
         renderMcps(cfg.mcpServers || {});
+        renderTools(cfg.toolSwitches || {});
         populateVoice(cfg.voice || {});
     }
 
@@ -396,6 +405,34 @@
         return env;
     }
 
+    function renderTools(switches) {
+        var container = document.getElementById('tools-list');
+        container.innerHTML = '';
+        fetch('/api/config/tools').then(function(r) { return r.json(); }).then(function(tools) {
+            tools.forEach(function(tool) {
+                addToolRow(tool, switches[tool.id] !== false);
+            });
+        }).catch(function(e) {
+            console.error('Failed to load tools:', e);
+        });
+    }
+
+    function addToolRow(tool, enabled) {
+        var container = document.getElementById('tools-list');
+        var div = document.createElement('div');
+        div.className = 'tools-list-item';
+        div.innerHTML = '\
+            <div class="tool-info">\
+                <div class="tool-name">' + escHtml(tool.name) + '</div>\
+                <div class="tool-desc">' + escHtml(tool.description || '') + '</div>\
+            </div>\
+            <label class="toggle-switch">\
+                <input type="checkbox" name="tool-switch" value="' + escHtml(tool.id) + '"' + (enabled ? ' checked' : '') + '>\
+                <span class="toggle-slider"></span>\
+            </label>';
+        container.appendChild(div);
+    }
+
     function saveConfig() {
         var cfg = {
             defaultModel: document.getElementById('cfg-default-model').value || null,
@@ -403,6 +440,7 @@
             execTimeoutSeconds: parseInt(document.getElementById('cfg-exec-timeout').value) || null,
             models: {},
             mcpServers: {},
+            toolSwitches: {},
             voice: buildVoice()
         };
 
@@ -439,6 +477,10 @@
                 args: args,
                 env: parseEnv(div.querySelector('[name="mcp-env"]').value)
             };
+        });
+
+        document.querySelectorAll('[name="tool-switch"]').forEach(function(cb) {
+            cfg.toolSwitches[cb.value] = cb.checked;
         });
 
         if (cfg.defaultModel && !cfg.models[cfg.defaultModel]) {

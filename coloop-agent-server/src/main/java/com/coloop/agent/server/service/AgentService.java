@@ -106,6 +106,7 @@ public class AgentService {
                 synchronized (ctx) {
                     if (ctx.agentLoop == null) {
                         AppConfig config = configRepository.load().orElseGet(this::loadSeedConfig);
+                        initializeDefaultToolSwitches(config);
                         LLMProvider provider = new OpenAICompatibleProvider(config.getDefaultModelConfig());
                         WebSocketLoggingHook hook = new WebSocketLoggingHook(session);
                         HistoryRecordingHook historyHook = new HistoryRecordingHook(historyStore, ctx.sessionId, "main", title -> {
@@ -190,7 +191,7 @@ public class AgentService {
                                 .withCapability(StandardCapability.LOGGING_HOOK, config)
                                 .withCapability(StandardCapability.SUMMARY_PROMPT, config)
                                 .withCapability(StandardCapability.MCP_CLIENT, config)
-                                .withComposite(taskCap);
+                                .withComposite(taskCap, StandardCapability.TASK_MANAGEMENT.getId());
                         List<Tool> parentTools = main.snapshotTools();
 
                         // Step 3: Factory closure holds parent tools, provider, config, session
@@ -495,6 +496,19 @@ public class AgentService {
             return AppConfig.fromSetting("coloop-agent-setting.json");
         } catch (IOException e) {
             return new AppConfig();
+        }
+    }
+
+    private void initializeDefaultToolSwitches(AppConfig config) {
+        if (config.getToolSwitches() == null || config.getToolSwitches().isEmpty()) {
+            Map<String, Boolean> switches = new HashMap<>();
+            for (StandardCapability cap : StandardCapability.values()) {
+                if (cap.getType() == com.coloop.agent.capability.CapabilityType.TOOL
+                        || cap.getType() == com.coloop.agent.capability.CapabilityType.COMPOSITE) {
+                    switches.put(cap.getId(), true);
+                }
+            }
+            config.setToolSwitches(switches);
         }
     }
 }

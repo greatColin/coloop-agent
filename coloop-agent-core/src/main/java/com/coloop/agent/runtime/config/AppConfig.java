@@ -39,6 +39,9 @@ public class AppConfig {
     // 语音相关配置（透传保留，core 不解析）
     private Map<String, Object> voice = new HashMap<>();
 
+    // 工具开关配置：key 为 StandardCapability ID，value 为是否启用
+    private Map<String, Boolean> toolSwitches = new HashMap<>();
+
     // ==================== 内部类：模型配置 ====================
 
     public static class ModelConfig {
@@ -149,6 +152,13 @@ public class AppConfig {
 
     public Map<String, Object> getVoice() { return voice; }
     public void setVoice(Map<String, Object> voice) { this.voice = voice; }
+
+    public Map<String, Boolean> getToolSwitches() { return toolSwitches; }
+    public void setToolSwitches(Map<String, Boolean> toolSwitches) { this.toolSwitches = toolSwitches; }
+
+    public boolean isToolEnabled(String toolId) {
+        return toolSwitches.getOrDefault(toolId, true);
+    }
 
     // ==================== 静态工厂方法 ====================
 
